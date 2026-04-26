@@ -767,16 +767,25 @@ textarea.form-input { resize: none; min-height: 72px; }
 </div>
 
 <script>
-// SPLASH
-// iOS fix: inicia imediatamente sem esperar fonte
-setTimeout(() => {
-  document.getElementById('splash').style.opacity = '0';
-  // iOS fix: inicia imediatamente sem esperar fonte
-setTimeout(() => {
-    document.getElementById('splash').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-  }, 600);
-}, 800);
+// SPLASH — controlado pelo botão Iniciar
+// Carrega fontes em segundo plano após interação
+function loadFonts() {
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap';
+  document.head.appendChild(link);
+}
+
+function iniciarApp() {
+  loadFonts();
+  var splash = document.getElementById('splash');
+  splash.style.transition = 'opacity 0.5s';
+  splash.style.opacity = '0';
+  setTimeout(function() {
+    splash.style.display = 'none';
+    checkAuth();
+  }, 500);
+}
 
 // ── ESTADO DOS SLOTS ──────────────────────────────
 const slotData = {}; // slotId -> { wine, color, status }
