@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wine & Friends</title>
+<!-- fontes carregadas via JS após splash -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --wine: #6B1A2A; --wine-light: #8B2A3A; --wine-dark: #3D0A14;
+  --wine-bar: #8B2A3A; --wine-bar-border: rgba(255,220,200,0.15);
+  --gold: #C9A84C; --gold-light: #E8C878;
+  --cream: #F5F0E8; --cream-dark: #EDE6D6;
+  --dark: #1A1008; --dark2: #2A1E10;
+  --text: #3D2B1A; --text-muted: #8A7060;
+  --white: #FDFAF5;
+  --success: #2D6A4F; --warn: #9A6B00; --danger: #8B1A1A;
+  --border: rgba(201,168,76,0.2); --shadow: 0 4px 24px rgba(26,16,8,0.12);
+  --bar-text: #FFE8D6; --bar-icon: #FDDCCA; --bar-icon-active: #FFE8D6;
+  --bar-muted: rgba(255,220,195,0.5);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; font-size: 15px; }
+
+/* SPLASH */
+#splash { font-family: Georgia, "Times New Roman", serif; position: fixed; inset: 0; background: var(--dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.6s; }
+.splash-logo { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 300; color: var(--cream); letter-spacing: 0.04em; text-align: center; }
+.splash-logo span { color: var(--gold); font-style: italic; }
+.splash-by { font-size: 16px; color: rgba(201,168,76,0.6); margin-top: 6px; letter-spacing: 0.08em; font-family: 'Cormorant Garamond', serif; font-style: italic; text-align: center; }
+
+.splash-line { width: 60px; height: 1px; background: var(--gold); margin: 20px auto; opacity: 0.4; }
+
+/* LAYOUT */
+#app { display: none; flex-direction: column; min-height: 100vh; max-width: 430px; margin: 0 auto; background: var(--white); box-shadow: var(--shadow); }
+
+/* HEADER */
+.app-header { background: var(--wine-bar); padding: 14px 20px 10px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--wine-bar-border); }
+.app-logo { display: flex; flex-direction: column; }
+.app-logo-main { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 300; color: var(--bar-text); letter-spacing: 0.02em; }
+.app-logo-main span { color: var(--gold-light); font-style: italic; }
+.app-logo-by { font-size: 13px; color: var(--bar-muted); font-family: 'Cormorant Garamond', serif; font-style: italic; letter-spacing: 0.06em; margin-top: 1px; }
+.header-icons { display: flex; gap: 12px; }
+.header-icon { color: var(--bar-icon); font-size: 18px; cursor: pointer; background: none; border: none; font-weight: 500; }
+
+/* NAV */
+.bottom-nav { display: flex; background: var(--wine-bar); border-top: 1px solid var(--wine-bar-border); position: sticky; bottom: 0; z-index: 100; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 4px 8px; cursor: pointer; border: none; background: none; color: var(--bar-muted); transition: color 0.2s; font-family: 'DM Sans', sans-serif; }
+.nav-item.active { color: var(--bar-text); }
+.nav-icon { font-size: 20px; margin-bottom: 3px; }
+.nav-label { font-size: 10px; letter-spacing: 0.04em; }
+
+/* PAGES */
+.page { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
+.page.active { display: flex; }
+
+/* SECTION HEADER */
+.section-header { padding: 20px 20px 12px; border-bottom: 1px solid var(--border); }
+.section-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 400; color: var(--dark); letter-spacing: 0.01em; }
+.section-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* STATS */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 16px 20px; }
+.stat-card { background: var(--cream); border-radius: 10px; padding: 12px; text-align: center; border: 1px solid var(--border); }
+.stat-num { font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 400; color: var(--wine); }
+.stat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* EMPTY STATE */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 30px; text-align: center; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+.empty-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--dark); margin-bottom: 8px; }
+.empty-sub { font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }
+
+/* ALERT */
+.alert-card { margin: 0 20px 16px; border-radius: 8px; padding: 12px 14px; }
+.alert-warn { background: #FEF3CD; border-left: 3px solid var(--gold); }
+.alert-success { background: #D4EDDA; border-left: 3px solid var(--success); }
+.alert-title { font-size: 12px; font-weight: 500; }
+.alert-body { font-size: 12px; margin-top: 2px; }
+
+/* ADEGA MAP */
+.adega-map-wrap { padding: 0 20px 20px; }
+.adega-label { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; margin-top: 16px; }
+.adega-frame { background: var(--dark2); border-radius: 12px; padding: 12px; border: 1px solid rgba(201,168,76,0.2); }
+.bandeja-row { display: flex; gap: 5px; margin-bottom: 5px; justify-content: center; }
+.bandeja-row:last-child { margin-bottom: 0; }
+.nicho { width: 44px; height: 30px; border-radius: 5px; cursor: pointer; transition: transform 0.15s; display: flex; align-items: center; justify-content: center; position: relative; }
+.slot-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0; line-height: 1; pointer-events: none; font-family: 'DM Sans', system-ui, sans-serif; }
+.nicho.ocupado .slot-label, .nicho.alerta .slot-label { color: #FFE8D6; }
+.nicho.vazio .slot-label { color: rgba(255,255,255,0.55); }
+.nicho.sugerido { background: var(--gold) !important; animation: pulse-gold 1.2s ease-in-out infinite; }
+@keyframes pulse-gold { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.nicho:hover { transform: scale(1.08); }
+.nicho.ocupado { background: var(--wine); }
+.nicho.alerta { background: var(--gold); }
+.nicho.vazio { background: rgba(255,255,255,0.07); border: 1px dashed rgba(255,255,255,0.15); }
+.transversal-row { display: flex; gap: 8px; margin-top: 6px; justify-content: center; }
+.nicho-tranv { width: 70px; height: 34px; border-radius: 6px; cursor: pointer; transition: transform 0.15s; display: flex; align-items: center; justify-content: center; }
+.nicho-tranv .slot-label { font-size: 8.5px; font-weight: 700; pointer-events: none; font-family: 'DM Sans', system-ui, sans-serif; }
+.nicho-tranv.ocupado .slot-label, .nicho-tranv.alerta .slot-label { color: #FFE8D6; }
+.nicho-tranv.vazio .slot-label { color: rgba(255,255,255,0.55); }
+.nicho-tranv.sugerido { background: var(--gold) !important; animation: pulse-gold 1.2s ease-in-out infinite; }
+.nicho-tranv:hover { transform: scale(1.05); }
+.nicho-tranv.ocupado { background: var(--wine); }
+.nicho-tranv.alerta { background: var(--gold); }
+.nicho-tranv.vazio { background: rgba(255,255,255,0.07); border: 1px dashed rgba(255,255,255,0.15); }
+.map-legend { display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-muted); }
+.leg-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* WINE CARD */
+.wine-list { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+.wine-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 14px; display: flex; gap: 12px; align-items: flex-start; cursor: pointer; transition: box-shadow 0.2s; }
+.wine-card:hover { box-shadow: var(--shadow); }
+.wine-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.wine-info { flex: 1; }
+.wine-name { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 500; color: var(--dark); }
+.wine-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.wine-local { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+.wine-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 5px; }
+.badge-ok { background: #D4EDDA; color: var(--success); }
+.badge-warn { background: #FEF3CD; color: var(--warn); }
+.badge-danger { background: #FADBD8; color: var(--danger); }
+
+/* BUTTONS */
+.btn { border: none; border-radius: 8px; padding: 12px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--wine); color: var(--cream); }
+.btn-primary:hover { opacity: 0.9; }
+.btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+.btn-gold { background: var(--gold); color: var(--dark); }
+.btn-danger { background: #FADBD8; color: var(--danger); border: none; }
+.btn-full { width: 100%; }
+
+/* FORM */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 5px; display: block; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--white); transition: border-color 0.2s; }
+.form-input:focus { outline: none; border-color: var(--gold); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.form-section-title { font-size: 10px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+textarea.form-input { resize: none; min-height: 72px; }
+
+/* STARS */
+.stars-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.star-lbl { font-size: 12px; color: var(--text-muted); width: 80px; flex-shrink: 0; }
+.stars-input { display: flex; gap: 4px; flex: 1; }
+.star { font-size: 22px; cursor: pointer; color: #DDD; transition: color 0.1s; }
+.star.on { color: var(--gold); }
+.star-val { font-size: 13px; font-weight: 500; color: var(--wine); width: 20px; text-align: right; flex-shrink: 0; }
+
+/* SCORE */
+.score-display { margin: 16px 20px; background: var(--dark); border-radius: 12px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; }
+.score-label { font-size: 12px; color: rgba(245,240,232,0.6); }
+.score-val { font-family: 'Cormorant Garamond', serif; font-size: 44px; font-weight: 300; color: var(--gold); }
+.score-max { font-size: 16px; color: rgba(245,240,232,0.4); }
+.score-badge-disp { font-size: 11px; padding: 3px 10px; border-radius: 10px; margin-top: 4px; display: inline-block; }
+
+/* CONFRARIA */
+.conf-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+.conf-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 500; color: var(--dark); }
+.conf-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.avatars { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; background: var(--cream); color: var(--text-muted); border: 1px solid var(--border); }
+.conf-wines-info { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.conf-btn-row { display: flex; gap: 8px; margin-top: 12px; }
+
+/* CONSOLIDADO */
+.cons-scores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 16px 20px; }
+.cons-card { background: var(--cream); border-radius: 10px; padding: 12px; border: 1px solid var(--border); }
+.cons-name { font-size: 11px; color: var(--text-muted); }
+.cons-num { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 400; color: var(--wine); }
+.cons-badge { font-size: 10px; padding: 2px 7px; border-radius: 8px; display: inline-block; margin-top: 2px; }
+.cons-avg { grid-column: 1/-1; background: var(--dark); border-radius: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+.cons-avg-label { font-size: 12px; color: rgba(245,240,232,0.7); }
+.cons-avg-num { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 300; color: var(--gold); }
+
+/* BARS */
+.bar-section { padding: 0 20px 16px; }
+.crit-compare { margin-bottom: 14px; }
+.crit-name { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; letter-spacing: 0.04em; text-transform: uppercase; }
+.bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.bar-person { font-size: 10px; color: var(--text-muted); width: 30px; flex-shrink: 0; }
+.bar-track { flex: 1; height: 6px; background: var(--cream-dark); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; background: var(--wine); opacity: 0.7; }
+.bar-fill-avg { background: var(--gold); opacity: 1; }
+.bar-num { font-size: 10px; font-weight: 500; color: var(--wine); width: 20px; text-align: right; }
+
+/* NOTAS */
+.nota-card-cons { border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+.nota-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.nota-nm { font-size: 13px; font-weight: 500; color: var(--dark); }
+.nota-stars { color: var(--gold); font-size: 12px; }
+.nota-txt { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+.nota-score-lbl { font-size: 11px; color: var(--wine); font-weight: 500; margin-top: 4px; }
+
+/* SCAN */
+.scan-area { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.scan-box { background: var(--cream); border-radius: 14px; border: 2px dashed rgba(107,26,42,0.25); padding: 36px 20px; text-align: center; cursor: pointer; }
+.scan-icon { font-size: 40px; margin-bottom: 10px; }
+.scan-text { font-size: 14px; color: var(--text-muted); }
+.result-card { background: var(--cream); border-radius: 12px; padding: 14px; border: 1px solid var(--border); }
+.result-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.result-row:last-child { border-bottom: none; }
+.result-lbl { color: var(--text-muted); }
+.result-val { font-weight: 500; color: var(--dark); }
+.ai-tag { background: var(--cream-dark); color: var(--wine); font-size: 10px; padding: 2px 7px; border-radius: 6px; }
+
+/* WISHLIST */
+.wish-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+.wish-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 500; color: var(--dark); }
+.wish-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.wish-price { font-size: 13px; font-weight: 500; color: var(--wine); margin-top: 6px; }
+.wish-teto { font-size: 11px; color: var(--text-muted); }
+.opp-card { background: var(--cream); border-radius: 10px; padding: 10px 12px; margin-top: 8px; border-left: 3px solid var(--success); }
+.opp-loja { font-size: 11px; font-weight: 500; color: var(--success); }
+.opp-price { font-size: 16px; font-weight: 500; color: var(--dark); margin-top: 2px; }
+.opp-link { font-size: 11px; color: var(--wine); text-decoration: underline; cursor: pointer; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,16,8,0.65); z-index: 500; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 430px; max-height: 88vh; overflow-y: auto; padding-bottom: 24px; }
+.modal-header { padding: 20px 20px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+.modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 500; color: var(--dark); }
+.modal-close { font-size: 24px; cursor: pointer; color: var(--text-muted); background: none; border: none; line-height: 1; }
+.modal-body { padding: 16px 20px; }
+.modal-footer { padding: 0 20px; display: flex; gap: 10px; }
+
+/* TABS */
+.tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--white); }
+.tab { flex: 1; padding: 12px 6px; text-align: center; font-size: 12px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.tab.active { color: var(--wine); border-bottom-color: var(--wine); font-weight: 500; }
+
+/* LINK BOX */
+.link-box { background: var(--cream); border-radius: 8px; padding: 12px 14px; border: 1px solid var(--border); margin-bottom: 14px; }
+.link-url { font-size: 12px; color: var(--text-muted); word-break: break-all; margin-bottom: 4px; }
+.link-exp { font-size: 10px; color: var(--danger); }
+.copy-btn { width: 100%; background: var(--dark); color: var(--gold); border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; letter-spacing: 0.03em; margin-top: 8px; font-family: 'DM Sans', sans-serif; }
+.copy-btn:active { opacity: 0.8; }
+.copy-confirm { display: none; text-align: center; font-size: 12px; color: var(--success); margin-top: 6px; }
+
+/* TUTORIAL */
+.tut-step { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.tut-step:last-child { border-bottom: none; }
+.tut-num { width: 28px; height: 28px; border-radius: 50%; background: var(--wine); color: var(--cream); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; margin-top: 2px; }
+.tut-title { font-size: 14px; font-weight: 500; color: var(--dark); margin-bottom: 4px; }
+.tut-body { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+.tut-section-title { font-family: 'Cormorant Garamond', serif; font-size: 18px; color: var(--dark); margin: 16px 0 8px; }
+.tut-danger-box { background: #FADBD8; border-radius: 8px; padding: 12px 14px; margin-top: 10px; }
+.tut-danger-title { font-size: 12px; font-weight: 500; color: var(--danger); margin-bottom: 4px; }
+.tut-danger-body { font-size: 12px; color: #6B1A1A; line-height: 1.6; }
+
+/* PRATOS */
+.prato-item { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.prato-item input { flex: 1; }
+.prato-remove { color: var(--text-muted); cursor: pointer; font-size: 20px; background: none; border: none; line-height: 1; }
+
+/* UTILS */
+.divider { height: 1px; background: var(--border); margin: 0 20px; }
+.pad20 { padding: 20px; }
+.mt8 { margin-top: 8px; }
+.mb16 { margin-bottom: 16px; }
+.text-center { text-align: center; }
+.text-muted { color: var(--text-muted); }
+.text-small { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-line"></div>
+  <div class="splash-logo">Wine <span>&</span> Friends</div>
+  <div class="splash-by">by Alvaro Morandi</div>
+  
+  <div class="splash-line"></div>
+  <button id="btn-iniciar" onclick="iniciarApp()" style="
+    margin-top: 32px;
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.6);
+    color: #C9A84C;
+    font-family: Georgia, serif;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    padding: 14px 40px;
+    border-radius: 40px;
+    cursor: pointer;
+    text-transform: uppercase;
+  ">Iniciar</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-header">
+    <div class="app-logo">
+      <div class="app-logo-main">Wine <span>&</span> Friends</div>
+      <div class="app-logo-by">by Alvaro Morandi</div>
+    </div>
+    <div class="header-icons" style="align-items:center">
+      <span id="user-email" style="font-size:9px;color:var(--bar-muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <button class="header-icon" onclick="openModal('modal-tutorial')" title="Tutorial">?</button>
+      <button class="header-icon" onclick="openModal('modal-add')">＋</button>
+    </div>
+  </div>
+
+  <!-- PAGE: ADEGA -->
+  <div class="page active" id="pg-adega">
+    <div class="section-header">
+      <div class="section-title">Minha adega</div>
+      <div class="section-sub">Electrolux Wine A + B · 68 posições</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-lbl">Na adega</div></div>
+      <div class="stat-card"><div class="stat-num">68</div><div class="stat-lbl">Livres</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--text-muted)">—</div><div class="stat-lbl">Alertas</div></div>
+    </div>
+
+    <div class="adega-map-wrap">
+      <div class="adega-label">Adega A</div>
+      <div class="adega-frame" id="frame-a"></div>
+      <div class="adega-label">Adega B</div>
+      <div class="adega-frame" id="frame-b"></div>
+      <div class="map-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--wine)"></div>Ocupado</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--gold)"></div>Consumir logo</div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,0.07);border:1px dashed rgba(255,255,255,0.2)"></div>Livre</div>
+      </div>
+    </div>
+
+    <div class="empty-state" id="adega-empty">
+      <div class="empty-icon">🍷</div>
+      <div class="empty-title">Adega vazia</div>
+      <div class="empty-sub">Adicione seu primeiro vinho tocando no botão + acima. Fotografe o rótulo e a IA cuida do resto.</div>
+      <button class="btn btn-primary" onclick="openModal('modal-add')">Adicionar primeiro vinho</button>
+    </div>
+
+    <div class="divider"></div>
+    <div style="padding:16px 20px 4px"><div class="section-title" style="font-size:20px">Lista de desejos</div></div>
+    <div style="padding:12px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="text-small text-muted">Monitoramento de preços em lojas brasileiras</div>
+        <button class="btn btn-gold" style="font-size:12px;padding:8px 12px" onclick="alert('Buscando preços em lojas e importadores brasileiros...')">🔍 Buscar</button>
+      </div>
+      <div class="empty-state" style="padding:20px 0">
+        <div class="empty-icon" style="font-size:32px">❤️</div>
+        <div class="empty-title" style="font-size:18px">Nenhum vinho na lista</div>
+        <div class="empty-sub" style="font-size:12px">Adicione vinhos que deseja comprar e defina seu preço-teto. O app monitora oportunidades nas principais lojas.</div>
+        <button class="btn btn-secondary" style="font-size:13px;padding:10px 18px" onclick="openModal('modal-add-wish')">+ Adicionar à lista</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: ESTOQUE -->
+  <div class="page" id="pg-estoque">
+    <div class="section-header">
+      <div class="section-title">Estoque externo</div>
+      <div class="section-sub">Vinhos fora da adega refrigerada</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-lbl">Em estoque</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--text-muted)">—</div><div class="stat-lbl">Para adega</div></div>
+      <div class="stat-card"><div class="stat-num" style="font-size:18px;padding-top:4px">R$ 0</div><div class="stat-lbl">Valor total</div></div>
+    </div>
+    <div class="empty-state" id="estoque-empty">
+      <div class="empty-icon">📦</div>
+      <div class="empty-title">Estoque vazio</div>
+      <div class="empty-sub">Ao adicionar um vinho, escolha "Estoque externo" como destino. Quando quiser transferir para a adega, o app registra a movimentação e sugere o melhor slot disponível.</div>
+      <button class="btn btn-primary" onclick="openModal('modal-add')">Adicionar ao estoque</button>
+    </div>
+  </div>
+
+  <!-- PAGE: ADICIONAR -->
+  <div class="page" id="pg-scan">
+    <div class="section-header">
+      <div class="section-title">Adicionar vinho</div>
+      <div class="section-sub">Fotografe o rótulo para cadastro automático</div>
+    </div>
+    <div class="scan-area">
+      <div class="scan-box" onclick="showScanResult()">
+        <div class="scan-icon">📷</div>
+        <div class="scan-text">Toque para fotografar<br>o rótulo e o contra-rótulo</div>
+      </div>
+      <div id="scan-result" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:500;color:var(--dark)">Dados extraídos</span>
+          <span class="ai-tag">IA · Site produtor · Vivino</span>
+        </div>
+        <div class="result-card">
+          <div class="result-row"><span class="result-lbl">Vinho</span><span class="result-val">Sassicaia</span></div>
+          <div class="result-row"><span class="result-lbl">Produtor</span><span class="result-val">Tenuta San Guido</span></div>
+          <div class="result-row"><span class="result-lbl">Safra</span><span class="result-val">2019</span></div>
+          <div class="result-row"><span class="result-lbl">Região</span><span class="result-val">Bolgheri, Toscana</span></div>
+          <div class="result-row"><span class="result-lbl">Uvas</span><span class="result-val">Cab. Sauv. / Cab. Franc</span></div>
+          <div class="result-row"><span class="result-lbl">Teor alc.</span><span class="result-val">14%</span></div>
+          <div class="result-row"><span class="result-lbl">WS Score</span><span class="result-val">97 pts</span></div>
+          <div class="result-row"><span class="result-lbl">Consumo ideal</span><span class="result-val">2025 – 2040</span></div>
+        </div>
+        <div class="form-group mt8">
+          <label class="form-label">Nome do vinho</label>
+          <input class="form-input" id="inp-nome" type="text" value="Sassicaia 2019">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-input" id="sel-tipo">
+            <option value="tinto_guarda">Tinto de guarda</option>
+            <option value="tinto_jovem">Tinto jovem</option>
+            <option value="branco">Branco</option>
+            <option value="espumante">Espumante / Champagne</option>
+            <option value="rose">Rosé</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantidade</label>
+          <input class="form-input" id="inp-qtd" type="number" placeholder="Nº de garrafas" value="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preço pago (R$)</label>
+          <input class="form-input" id="inp-preco" type="number" placeholder="0,00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino</label>
+          <select class="form-input" id="sel-destino">
+            <option value="adega">Adega (sugerir slot)</option>
+            <option value="estoque">Estoque externo</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="confirmarVinho()">Confirmar e guardar ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: NOTAS -->
+  <div class="page" id="pg-notas">
+    <div class="section-header">
+      <div class="section-title">Degustação</div>
+      <div class="section-sub">Preencha a ficha de prova</div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Identificação</div>
+      <div class="form-group"><label class="form-label">Degustador</label><input class="form-input" type="text" placeholder="Seu nome"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Data</label><input class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Local</label><input class="form-input" type="text" placeholder="Local"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Vinho degustado</label><input class="form-input" type="text" placeholder="Nome do vinho · Safra"></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Visual</div>
+      <div class="stars-row"><span class="star-lbl">Cor</span><div class="stars-input" data-id="s-cor" data-def="0"></div><span class="star-val" id="s-cor">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Limpidez</span><div class="stars-input" data-id="s-lim" data-def="0"></div><span class="star-val" id="s-lim">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Efervescência</span><div class="stars-input" data-id="s-efe" data-def="0"></div><span class="star-val" id="s-efe">—</span></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Nariz</div>
+      <div class="stars-row"><span class="star-lbl">Intensidade</span><div class="stars-input" data-id="s-nint" data-def="0"></div><span class="star-val" id="s-nint">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Complexidade</span><div class="stars-input" data-id="s-ncom" data-def="0"></div><span class="star-val" id="s-ncom">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Franqueza</span><div class="stars-input" data-id="s-nfra" data-def="0"></div><span class="star-val" id="s-nfra">—</span></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Boca</div>
+      <div class="stars-row"><span class="star-lbl">Ataque</span><div class="stars-input" data-id="s-bata" data-def="0"></div><span class="star-val" id="s-bata">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Equilíbrio</span><div class="stars-input" data-id="s-bequ" data-def="0"></div><span class="star-val" id="s-bequ">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Estrutura</span><div class="stars-input" data-id="s-best" data-def="0"></div><span class="star-val" id="s-best">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Final</span><div class="stars-input" data-id="s-bfin" data-def="0"></div><span class="star-val" id="s-bfin">—</span></div>
+      <div class="stars-row"><span class="star-lbl">Persistência</span><div class="stars-input" data-id="s-bper" data-def="0"></div><span class="star-val" id="s-bper">—</span></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Conclusão</div>
+      <div class="stars-row" style="margin-bottom:12px">
+        <span class="star-lbl">Apreciação</span>
+        <div class="stars-input" data-id="s-ger" data-def="0"></div>
+        <span class="star-val" id="s-ger">—</span>
+      </div>
+      <textarea class="form-input" rows="3" placeholder="Notas livres — aromas, defeitos, harmonizações sugeridas..."></textarea>
+    </div>
+    <div class="score-display">
+      <div>
+        <div class="score-label">Nota final</div>
+        <div id="nota-badge" class="score-badge-disp" style="background:rgba(255,255,255,0.1);color:rgba(245,240,232,0.5)">Aguardando</div>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span class="score-val" id="nota-score">—</span>
+        <span class="score-max">/ 5</span>
+      </div>
+    </div>
+    <div class="pad20" style="display:flex;gap:10px;padding-top:0">
+      <button class="btn btn-secondary" style="flex:1">Descartar</button>
+      <button class="btn btn-primary" style="flex:1">Salvar nota</button>
+    </div>
+  </div>
+
+  <!-- PAGE: CONFRARIA -->
+  <div class="page" id="pg-conf">
+    <div class="section-header">
+      <div class="section-title">Confrarias</div>
+      <div class="section-sub">Sessões de degustação em grupo</div>
+    </div>
+    <div class="tabs" id="conf-tabs">
+      <div class="tab active" onclick="showConfTab('sessoes',this)">Sessões</div>
+      <div class="tab" onclick="showConfTab('consolidado',this)">Consolidado</div>
+    </div>
+
+    <!-- SESSOES -->
+    <div id="ct-sessoes" style="padding:16px 20px">
+      <div class="empty-state" style="padding:30px 0 20px">
+        <div class="empty-icon">👥</div>
+        <div class="empty-title">Nenhuma sessão ainda</div>
+        <div class="empty-sub">Crie uma confraria, gere o link para os participantes e registre as fichas de prova em grupo.</div>
+        <button class="btn btn-primary" onclick="openModal('modal-nova-conf')">Criar primeira confraria</button>
+      </div>
+
+      <div class="divider mb16"></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;font-weight:500">Exemplo de sessão salva:</div>
+      <div class="conf-card">
+        <div class="conf-title">Confraria dos Tintos 2025</div>
+        <div class="conf-meta">14 de junho · Casa do Ricardo · Bordeaux às cegas</div>
+        <div class="avatars">
+          <div class="avatar" style="background:#FDF0F2;color:var(--wine)">JM</div>
+          <div class="avatar">AS</div><div class="avatar">PR</div><div class="avatar">LF</div>
+          <div class="avatar" style="font-size:9px">+3</div>
+        </div>
+        <div class="conf-wines-info">6 vinhos · 7 participantes · Magret de canard, queijos curados</div>
+        <div class="conf-btn-row">
+          <button class="btn btn-secondary" style="flex:1;font-size:12px" onclick="openModal('modal-link')">🔗 Link</button>
+          <button class="btn btn-primary" style="flex:1;font-size:12px" onclick="openModal('modal-pdf')">📄 PDF</button>
+          <button class="btn btn-danger" style="font-size:12px;padding:10px 12px" onclick="confirmDelete('sessão')">🗑</button>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-full mt8" onclick="openModal('modal-nova-conf')">+ Nova confraria</button>
+    </div>
+
+    <!-- CONSOLIDADO -->
+    <div id="ct-consolidado" style="display:none">
+      <div style="padding:14px 20px 4px">
+        <div style="font-size:13px;font-weight:500;color:var(--dark)">Sassicaia 2018 · Bolgheri</div>
+        <div style="font-size:11px;color:var(--text-muted)">Confraria dos Tintos 2025 · 14 jun · 4 avaliadores</div>
+      </div>
+      <div class="cons-scores">
+        <div class="cons-card"><div class="cons-name">João M.</div><div class="cons-num">4,6</div><div class="cons-badge" style="background:#FDF0F2;color:var(--wine)">Excelente</div></div>
+        <div class="cons-card"><div class="cons-name">Ana S.</div><div class="cons-num">4,4</div><div class="cons-badge" style="background:#D4EDDA;color:var(--success)">Excelente</div></div>
+        <div class="cons-card"><div class="cons-name">Paulo R.</div><div class="cons-num">3,8</div><div class="cons-badge" style="background:#FEF3CD;color:var(--warn)">Muito bom</div></div>
+        <div class="cons-card"><div class="cons-name">Lúcia F.</div><div class="cons-num">4,9</div><div class="cons-badge" style="background:#FDF0F2;color:var(--wine)">Extraordinário</div></div>
+        <div class="cons-avg">
+          <div><div class="cons-avg-label">Média do grupo</div><div style="font-size:10px;background:rgba(201,168,76,0.2);color:var(--gold);padding:2px 8px;border-radius:6px;display:inline-block;margin-top:3px">Excelente</div></div>
+          <div style="display:flex;align-items:baseline;gap:4px"><span class="cons-avg-num">4,4</span><span style="color:var(--gold);font-size:14px">/ 5</span></div>
+        </div>
+      </div>
+      <div class="bar-section">
+        <div class="crit-compare">
+          <div class="crit-name">Equilíbrio</div>
+          <div class="bar-row"><span class="bar-person">João</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-num">5</span></div>
+          <div class="bar-row"><span class="bar-person">Ana</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-num">5</span></div>
+          <div class="bar-row"><span class="bar-person">Paulo</span><div class="bar-track"><div class="bar-fill" style="width:60%"></div></div><span class="bar-num">3</span></div>
+          <div class="bar-row"><span class="bar-person">Lúcia</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-num">5</span></div>
+          <div class="bar-row"><span class="bar-person" style="color:var(--gold);font-weight:500">Méd</span><div class="bar-track"><div class="bar-fill bar-fill-avg" style="width:90%"></div></div><span class="bar-num" style="color:var(--gold)">4,5</span></div>
+        </div>
+        <div class="crit-compare">
+          <div class="crit-name">Final</div>
+          <div class="bar-row"><span class="bar-person">João</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-num">5</span></div>
+          <div class="bar-row"><span class="bar-person">Ana</span><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><span class="bar-num">4</span></div>
+          <div class="bar-row"><span class="bar-person">Paulo</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-num">5</span></div>
+          <div class="bar-row"><span class="bar-person">Lúcia</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="bar-num">5</span></div>
+          <div class="bar-row"><span class="bar-person" style="color:var(--gold);font-weight:500">Méd</span><div class="bar-track"><div class="bar-fill bar-fill-avg" style="width:95%"></div></div><span class="bar-num" style="color:var(--gold)">4,8</span></div>
+        </div>
+      </div>
+      <div style="padding:0 20px 16px">
+        <div style="font-size:10px;font-weight:500;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Notas livres</div>
+        <div class="nota-card-cons"><div class="nota-head"><span class="nota-nm">João M.</span><span class="nota-stars">★★★★☆</span></div><div class="nota-txt">Rubi intenso, borda granada. Cedro, tabaco e frutas negras. Taninos sedosos, longa persistência.</div><div class="nota-score-lbl">4,6 / 5</div></div>
+        <div class="nota-card-cons"><div class="nota-head"><span class="nota-nm">Ana S.</span><span class="nota-stars">★★★★☆</span></div><div class="nota-txt">Excelente equilíbrio fruta/madeira. Especiarias e couro. Final longo e elegante.</div><div class="nota-score-lbl">4,4 / 5</div></div>
+        <div class="nota-card-cons"><div class="nota-head"><span class="nota-nm">Paulo R.</span><span class="nota-stars">★★★☆☆</span></div><div class="nota-txt">Pouco fechado no nariz, precisou de aeração. Taninos jovens. Prefiro beber em 2027.</div><div class="nota-score-lbl">3,8 / 5</div></div>
+        <div class="nota-card-cons"><div class="nota-head"><span class="nota-nm">Lúcia F.</span><span class="nota-stars">★★★★★</span></div><div class="nota-txt">Extraordinário. Floral, frutas negras, toque de menta. Boca cheia, final interminável.</div><div class="nota-score-lbl">4,9 / 5</div></div>
+      </div>
+      <div style="padding:0 20px 20px;display:flex;gap:10px">
+        <button class="btn btn-secondary" style="flex:1">Exportar PDF</button>
+        <button class="btn btn-primary" style="flex:1">Compartilhar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="showPage('pg-adega',this)"><div class="nav-icon">🍷</div><div class="nav-label">Adega</div></button>
+    <button class="nav-item" onclick="showPage('pg-estoque',this)"><div class="nav-icon">📦</div><div class="nav-label">Estoque</div></button>
+    <button class="nav-item" onclick="showPage('pg-scan',this)"><div class="nav-icon">📷</div><div class="nav-label">Adicionar</div></button>
+    <button class="nav-item" onclick="showPage('pg-notas',this)"><div class="nav-icon">📋</div><div class="nav-label">Notas</div></button>
+    <button class="nav-item" onclick="showPage('pg-conf',this)"><div class="nav-icon">👥</div><div class="nav-label">Confraria</div></button>
+  </div>
+</div>
+
+<!-- MODAL: ADD -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Ação rápida</div><button class="modal-close" onclick="closeModal('modal-add')">×</button></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-primary btn-full" onclick="closeModal('modal-add');showPage('pg-scan',null)">📷 Cadastrar novo vinho</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-add');showPage('pg-notas',null)">📋 Nova ficha de degustação</button>
+      <button class="btn btn-secondary btn-full" onclick="closeModal('modal-add');openModal('modal-add-wish')">❤️ Adicionar à lista de desejos</button>
+      <button class="btn btn-gold btn-full" onclick="closeModal('modal-add');openModal('modal-nova-conf')">👥 Nova confraria</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: LINK -->
+<div class="modal-overlay" id="modal-link">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Link para participantes</div><button class="modal-close" onclick="closeModal('modal-link')">×</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">Os participantes acessam apenas esta sessão de degustação. Sua adega, estoque e preços ficam completamente privados.</p>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Ao entrar, cada convidado preenche nome, telefone e preferências de vinho antes de ver a ficha de prova.</p>
+      <div class="link-box">
+        <div class="link-url" id="link-url">wineandfriends.app/s/CTT2025-AM-x7k9p</div>
+        <div class="link-exp">⏱ Expira 48h após o encontro</div>
+      </div>
+      <button class="copy-btn" onclick="copyLink()">📋 Copiar link</button>
+      <div class="copy-confirm" id="copy-confirm">✓ Link copiado! Cole no WhatsApp de cada participante.</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5">Cole o link no WhatsApp de cada participante individualmente, ou envie no grupo da confraria.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-link')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PDF -->
+<div class="modal-overlay" id="modal-pdf">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Gerar relatório PDF</div><button class="modal-close" onclick="closeModal('modal-pdf')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Tema da confraria</label><input class="form-input" type="text" value="Confraria dos Tintos 2025 · Bordeaux"></div>
+      <div class="form-group">
+        <label class="form-label">Pratos e petiscos servidos <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+        <div id="pratos-list">
+          <div class="prato-item"><input class="form-input" type="text" placeholder="Ex: Magret de canard" value="Magret de canard"><button class="prato-remove" onclick="this.parentElement.remove()">×</button></div>
+          <div class="prato-item"><input class="form-input" type="text" placeholder="Ex: Seleção de queijos" value="Seleção de queijos curados"><button class="prato-remove" onclick="this.parentElement.remove()">×</button></div>
+        </div>
+        <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;margin-top:6px" onclick="addPrato()">+ Adicionar prato</button>
+      </div>
+      <div class="form-group"><label class="form-label">Observações do anfitrião</label><textarea class="form-input" rows="2" placeholder="Próximos encontros, agradecimentos..."></textarea></div>
+    </div>
+    <div class="modal-footer" style="padding-bottom:16px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-pdf')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="alert('PDF gerado! Pronto para enviar.')">Gerar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVA CONFRARIA -->
+<div class="modal-overlay" id="modal-nova-conf">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Nova confraria</div><button class="modal-close" onclick="closeModal('modal-nova-conf')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nome da sessão</label><input class="form-input" type="text" placeholder="Ex: Borgonhas Especiais 2025"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Data</label><input class="form-input" type="date"></div>
+        <div class="form-group"><label class="form-label">Local</label><input class="form-input" type="text" placeholder="Casa, restaurante..."></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tema / tipo de vinho</label><input class="form-input" type="text" placeholder="Ex: Champagne, Tintos italianos..."></div>
+      <div class="form-group"><label class="form-label">Degustação às cegas?</label><select class="form-input"><option>Sim</option><option>Não</option></select></div>
+    </div>
+    <div class="modal-footer" style="padding-bottom:16px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-nova-conf')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="closeModal('modal-nova-conf');alert('Confraria criada! Use o botão Link para convidar os participantes.')">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD WISH -->
+<div class="modal-overlay" id="modal-add-wish">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Adicionar à lista de desejos</div><button class="modal-close" onclick="closeModal('modal-add-wish')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nome do vinho</label><input class="form-input" type="text" placeholder="Ex: Opus One 2019"></div>
+      <div class="form-group"><label class="form-label">Produtor / Região</label><input class="form-input" type="text" placeholder="Ex: Robert Mondavi · Napa Valley"></div>
+      <div class="form-group"><label class="form-label">Preço máximo (R$)</label><input class="form-input" id="inp-preco" type="number" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">Observações</label><input class="form-input" type="text" placeholder="Safra preferida, ocasião..."></div>
+    </div>
+    <div class="modal-footer" style="padding-bottom:16px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-add-wish')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1" onclick="closeModal('modal-add-wish');alert('Adicionado! Use o botão Buscar para monitorar preços.')">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TUTORIAL -->
+<div class="modal-overlay" id="modal-tutorial">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Como usar o Wine & Friends</div><button class="modal-close" onclick="closeModal('modal-tutorial')">×</button></div>
+    <div class="modal-body">
+
+      <div class="tut-section-title">🍷 Adega & Estoque</div>
+      <div class="tut-step">
+        <div class="tut-num">1</div>
+        <div><div class="tut-title">Adicionar um vinho</div><div class="tut-body">Toque no botão + (canto superior direito) ou na aba Adicionar. Fotografe o rótulo e o contra-rótulo. A IA extrai as informações automaticamente. Confirme, ajuste se necessário, e escolha o destino: Adega A, Adega B ou Estoque externo.</div></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">2</div>
+        <div><div class="tut-title">Transferir do estoque para a adega</div><div class="tut-body">Na aba Estoque, toque em "Transferir" ao lado do vinho desejado. O app registra a movimentação com data e sugere o melhor slot disponível na adega.</div></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">3</div>
+        <div><div class="tut-title">Alertas de consumo</div><div class="tut-body">Quando um vinho estiver se aproximando do limite ideal de consumo, ele aparece em destaque na tela da Adega com um alerta dourado. Vinhos em ponto ideal ficam marcados em vermelho escuro.</div></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">4</div>
+        <div><div class="tut-title">Lista de desejos</div><div class="tut-body">Role para baixo na tela da Adega para acessar a lista. Adicione vinhos que quer comprar e defina seu preço-teto. Toque em "Buscar" para o app pesquisar oportunidades nas principais lojas e importadores brasileiros.</div></div>
+      </div>
+
+      <div class="tut-section-title">📋 Degustação</div>
+      <div class="tut-step">
+        <div class="tut-num">5</div>
+        <div><div class="tut-title">Preencher uma ficha de prova</div><div class="tut-body">Acesse a aba Notas. Preencha seu nome, a data, o local e o nome do vinho. Avalie cada critério de 1 a 5 estrelas. A nota final é calculada automaticamente com pesos diferenciados por importância. Adicione observações livres e salve.</div></div>
+      </div>
+
+      <div class="tut-section-title">👥 Confraria</div>
+      <div class="tut-step">
+        <div class="tut-num">6</div>
+        <div><div class="tut-title">Criar uma sessão</div><div class="tut-body">Na aba Confraria, toque em "Nova confraria". Preencha nome, data, local e tema. Depois toque em "Link" para gerar o endereço de acesso dos participantes.</div></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">7</div>
+        <div><div class="tut-title">Compartilhar com os participantes</div><div class="tut-body">Na tela do link, toque em "Copiar link" e cole no WhatsApp de cada participante individualmente. Ao entrar, cada um preenche nome, telefone e preferências antes de avaliar os vinhos.</div></div>
+      </div>
+      <div class="tut-step">
+        <div class="tut-num">8</div>
+        <div><div class="tut-title">Gerar o PDF do encontro</div><div class="tut-body">Após a sessão, toque em "PDF" no card da confraria. Adicione os pratos servidos (opcional) e suas observações. O documento é gerado e pode ser enviado via WhatsApp ou e-mail para todos os participantes.</div></div>
+      </div>
+
+      <div class="tut-section-title">🗑 Como apagar dados</div>
+      <div class="tut-danger-box">
+        <div class="tut-danger-title">Apagar um vinho da adega ou estoque</div>
+        <div class="tut-danger-body">Toque no card do vinho para abrir os detalhes. No final da tela, toque em "Remover garrafa" (ícone de lixeira). Confirme a ação na janela que aparece. O slot fica marcado como livre no mapa.</div>
+      </div>
+      <div class="tut-danger-box" style="margin-top:10px">
+        <div class="tut-danger-title">Apagar uma ficha de degustação</div>
+        <div class="tut-danger-body">Acesse o histórico de notas (ícone de lista na tela de Notas). Deslize o card da ficha para a esquerda e toque no botão vermelho de excluir, ou abra a ficha e toque em "Descartar".</div>
+      </div>
+      <div class="tut-danger-box" style="margin-top:10px">
+        <div class="tut-danger-title">Apagar uma sessão de confraria</div>
+        <div class="tut-danger-body">No card da sessão, toque no ícone 🗑 vermelho ao lado dos botões de Link e PDF. Uma confirmação será solicitada antes de excluir. Atenção: as fichas dos participantes também são removidas permanentemente.</div>
+      </div>
+
+    </div>
+    <div class="modal-footer" style="padding-bottom:16px">
+      <button class="btn btn-primary btn-full" onclick="closeModal('modal-tutorial')">Entendido, vamos lá!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// SPLASH
+// iOS fix: inicia imediatamente sem esperar fonte
+setTimeout(() => {
+  document.getElementById('splash').style.opacity = '0';
+  // iOS fix: inicia imediatamente sem esperar fonte
+setTimeout(() => {
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+  }, 600);
+}, 800);
+
+// ── ESTADO DOS SLOTS ──────────────────────────────
+const slotData = {}; // slotId -> { wine, color, status }
+
+function initSlots() {
+  ['A','B'].forEach(l => {
+    for (let b = 1; b <= 6; b++)
+      for (let p = 1; p <= 5; p++)
+        slotData[l+b+p] = null;
+    for (let p = 1; p <= 4; p++)
+      slotData[l+'7'+p] = null;
+  });
+}
+initSlots();
+
+// ── CONSTRUÇÃO DO MAPA ────────────────────────────
+function buildAdega(frameId, letter) {
+  const frame = document.getElementById(frameId);
+  for (let b = 1; b <= 6; b++) {
+    const row = document.createElement('div');
+    row.className = 'bandeja-row';
+    for (let p = 1; p <= 5; p++) {
+      const sid = letter + b + p;
+      const n = document.createElement('div');
+      n.className = 'nicho vazio';
+      n.id = 'slot-' + sid;
+      n.dataset.slot = sid;
+      n.innerHTML = '<span class="slot-label">' + sid + '</span>';
+      n.onclick = () => onSlotClick(sid);
+      row.appendChild(n);
+    }
+    frame.appendChild(row);
+  }
+  const transv = document.createElement('div');
+  transv.className = 'transversal-row';
+  for (let p = 1; p <= 4; p++) {
+    const sid = letter + '7' + p;
+    const n = document.createElement('div');
+    n.className = 'nicho-tranv vazio';
+    n.id = 'slot-' + sid;
+    n.dataset.slot = sid;
+    n.innerHTML = '<span class="slot-label">' + sid + '</span>';
+    n.onclick = () => onSlotClick(sid);
+    transv.appendChild(n);
+  }
+  frame.appendChild(transv);
+}
+buildAdega('frame-a', 'A');
+buildAdega('frame-b', 'B');
+
+// ── CLIQUE NO SLOT ────────────────────────────────
+function onSlotClick(sid) {
+  const data = slotData[sid];
+  const letter = sid[0];
+  const bandeja = sid[1];
+  const pos = sid.slice(2);
+  const bandejaLabel = bandeja === '7' ? 'Bandeja 7 — compartimento inferior' : 'Bandeja ' + bandeja;
+  if (data) {
+    const r = confirm(
+      'Slot ' + sid + ' — Adega ' + letter + '\n' +
+      bandejaLabel + ', Posição ' + pos + '\n\n' +
+      '🍷 ' + data.wine + '\n\n' +
+      'Deseja remover este vinho?'
+    );
+    if (r) { slotData[sid] = null; renderSlot(sid); updateStats(); }
+  } else {
+    alert('Slot ' + sid + ' livre\nAdega ' + letter + ' · ' + bandejaLabel + ', Posição ' + pos + '\n\nUse o botão + para adicionar um vinho a este slot.');
+  }
+}
+
+// ── RENDERIZAR SLOT ───────────────────────────────
+function renderSlot(sid) {
+  const el = document.getElementById('slot-' + sid);
+  if (!el) return;
+  const data = slotData[sid];
+  el.className = el.classList.contains('nicho-tranv') ? 'nicho-tranv' : 'nicho';
+  el.classList.add(data ? (data.status === 'alerta' ? 'alerta' : 'ocupado') : 'vazio');
+  if (data) el.style.background = data.color || '';
+  else el.style.background = '';
+}
+
+// ── SUGESTÃO DE SLOT ──────────────────────────────
+function suggestSlot(tipo) {
+  // Tipo: 'guarda' -> bandejas 3-5, 'branco' -> bandejas 1-2, 'espumante' -> bandeja 7, padrão -> primeira livre
+  const order = tipo === 'espumante'
+    ? [...Array.from({length:4},(_,i)=>'A7'+(i+1)), ...Array.from({length:4},(_,i)=>'B7'+(i+1))]
+    : tipo === 'guarda'
+    ? ['A31','A32','A33','A34','A35','A41','A42','A43','A44','A45','A51','A52','A53','A54','A55',
+       'B31','B32','B33','B34','B35','B41','B42','B43','B44','B45']
+    : tipo === 'branco'
+    ? ['A11','A12','A13','A14','A15','A21','A22','A23','A24','A25',
+       'B11','B12','B13','B14','B15','B21','B22','B23','B24','B25']
+    : Object.keys(slotData);
+
+  for (const sid of order) {
+    if (slotData[sid] === null) return sid;
+  }
+  // fallback: qualquer livre
+  return Object.keys(slotData).find(k => slotData[k] === null) || null;
+}
+
+// ── CONFIRMAR CADASTRO COM SUGESTÃO ──────────────
+let pendingWine = null;
+let suggestedSlot = null;
+
+function confirmarVinho() {
+  const tipo = document.getElementById('sel-tipo')?.value || 'tinto';
+  const nome = document.getElementById('inp-nome')?.value || 'Novo vinho';
+  const destino = document.getElementById('sel-destino')?.value || 'adega';
+
+  if (destino === 'estoque') {
+    alert('Vinho adicionado ao estoque externo!');
+    document.getElementById('scan-result').style.display = 'none';
+    showPage('pg-estoque', null);
+    return;
+  }
+
+  const tipoMap = { tinto_guarda: 'guarda', tinto_jovem: 'tinto', branco: 'branco', espumante: 'espumante', rose: 'tinto' };
+  const sid = suggestSlot(tipoMap[tipo] || 'tinto');
+
+  if (!sid) { alert('Não há slots disponíveis na adega.'); return; }
+
+  suggestedSlot = sid;
+  pendingWine = { wine: nome, color: '#6B1A2A', status: 'ok' };
+
+  // Highlight sugestão
+  clearSuggestions();
+  const el = document.getElementById('slot-' + sid);
+  if (el) el.classList.add('sugerido');
+
+  // Navega para adega e abre modal de confirmação
+  showPage('pg-adega', null);
+  document.getElementById('sugestao-slot').textContent = sid;
+  document.getElementById('sugestao-wine').textContent = nome;
+  openModal('modal-sugestao');
+}
+
+function clearSuggestions() {
+  document.querySelectorAll('.sugerido').forEach(e => e.classList.remove('sugerido'));
+}
+
+async function aceitarSugestao() {
+  if (suggestedSlot && pendingWine) {
+    const vinho = {
+      nome: pendingWine.wine.replace(/ \d{4}$/, ''),
+      cor: pendingWine.color,
+      tipo: pendingWine.tipo,
+      slot: suggestedSlot,
+      local: 'adega',
+      preco_pago: pendingWine.preco_pago || null,
+      qtd: pendingWine.qtd || 1,
+      status: 'ok'
+    };
+    const saved = await salvarVinho(vinho);
+    if (saved) {
+      slotData[suggestedSlot] = { ...pendingWine, id: saved.id };
+      renderSlot(suggestedSlot);
+      updateStats();
+      loadAdega();
+    }
+  }
+  clearSuggestions();
+  closeModal('modal-sugestao');
+  document.getElementById('scan-result').style.display = 'none';
+  pendingWine = null;
+  suggestedSlot = null;
+}
+
+function escolherOutroSlot() {
+  closeModal('modal-sugestao');
+  alert('Toque no slot desejado no mapa para confirmar a posição.');
+  // Próximo clique num slot vazio vai alocar o vinho pendente
+  window._choosingSlot = true;
+}
+
+// Override onSlotClick para modo escolha
+const _origOnSlotClick = onSlotClick;
+function onSlotClick(sid) {
+  if (window._choosingSlot && slotData[sid] === null && pendingWine) {
+    slotData[sid] = pendingWine;
+    renderSlot(sid);
+    updateStats();
+    clearSuggestions();
+    window._choosingSlot = false;
+    pendingWine = null;
+    alert('Vinho alocado no slot ' + sid + '!');
+    return;
+  }
+  _origOnSlotClick(sid);
+}
+
+// ── ESTATÍSTICAS ──────────────────────────────────
+function updateStats() {
+  const total = Object.values(slotData).filter(v => v !== null).length;
+  const livres = Object.keys(slotData).length - total;
+  const alertas = Object.values(slotData).filter(v => v && v.status === 'alerta').length;
+  document.querySelectorAll('#pg-adega .stat-num')[0].textContent = total;
+  document.querySelectorAll('#pg-adega .stat-num')[1].textContent = livres;
+  const aEl = document.querySelectorAll('#pg-adega .stat-num')[2];
+  aEl.textContent = alertas || '—';
+  aEl.style.color = alertas ? 'var(--warn)' : 'var(--text-muted)';
+}
+
+// NAV
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// CONF TABS
+function showConfTab(id, tabEl) {
+  ['sessoes','consolidado'].forEach(t => {
+    document.getElementById('ct-' + t).style.display = 'none';
+  });
+  document.getElementById('ct-' + id).style.display = 'block';
+  document.querySelectorAll('#conf-tabs .tab').forEach(t => t.classList.remove('active'));
+  if (tabEl) tabEl.classList.add('active');
+  else {
+    const map = {sessoes:0, consolidado:1};
+    document.querySelectorAll('#conf-tabs .tab')[map[id]].classList.add('active');
+  }
+}
+
+// MODALS
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// SCAN
+function showScanResult() { document.getElementById('scan-result').style.display = 'block'; }
+
+// COPY LINK
+function copyLink() {
+  const url = document.getElementById('link-url').textContent;
+  navigator.clipboard.writeText(url).catch(() => {});
+  const btn = document.querySelector('.copy-btn');
+  const confirm = document.getElementById('copy-confirm');
+  btn.textContent = '✓ Copiado!';
+  btn.style.background = 'var(--success)';
+  confirm.style.display = 'block';
+  // iOS fix: inicia imediatamente sem esperar fonte
+setTimeout(() => {
+    btn.textContent = '📋 Copiar link';
+    btn.style.background = 'var(--dark)';
+  }, 3000);
+}
+
+// STARS
+const starWeights = {
+  's-cor':1,'s-lim':1,'s-efe':0,
+  's-nint':1.2,'s-ncom':1.2,'s-nfra':1,
+  's-bata':1.3,'s-bequ':1.3,'s-best':1.2,'s-bfin':1.3,'s-bper':1.2,
+  's-ger':0
+};
+
+function buildStars(container, id) {
+  for (let i = 1; i <= 5; i++) {
+    const s = document.createElement('span');
+    s.className = 'star';
+    s.textContent = '★';
+    s.onclick = () => { setStars(container, id, i); calcNota(); };
+    container.appendChild(s);
+  }
+}
+
+function setStars(container, id, n) {
+  container.querySelectorAll('.star').forEach((s,i) => s.classList.toggle('on', i < n));
+  document.getElementById(id).textContent = n;
+}
+
+function calcNota() {
+  let total = 0, max = 0, hasAny = false;
+  Object.keys(starWeights).forEach(id => {
+    const w = starWeights[id];
+    if (w === 0) return;
+    const el = document.getElementById(id);
+    if (!el || el.textContent === '—') return;
+    const v = parseInt(el.textContent);
+    if (isNaN(v)) return;
+    hasAny = true;
+    total += v * w; max += 5 * w;
+  });
+  const scoreEl = document.getElementById('nota-score');
+  const badge = document.getElementById('nota-badge');
+  if (!hasAny || max === 0) {
+    scoreEl.textContent = '—';
+    badge.textContent = 'Aguardando';
+    badge.style.background = 'rgba(255,255,255,0.1)';
+    badge.style.color = 'rgba(245,240,232,0.4)';
+    return;
+  }
+  const score = total / max * 5;
+  scoreEl.textContent = score.toFixed(1).replace('.',',');
+  if (score >= 4.8) { badge.textContent = 'Extraordinário'; badge.style.background='#FDF0F2'; badge.style.color='var(--wine)'; }
+  else if (score >= 4.1) { badge.textContent = 'Excelente'; badge.style.background='#D4EDDA'; badge.style.color='var(--success)'; }
+  else if (score >= 3.1) { badge.textContent = 'Muito bom'; badge.style.background='#D1ECF1'; badge.style.color='#0C5460'; }
+  else if (score >= 2.1) { badge.textContent = 'Bom'; badge.style.background='#FEF3CD'; badge.style.color='var(--warn)'; }
+  else { badge.textContent = 'Mediano'; badge.style.background='#FADBD8'; badge.style.color='var(--danger)'; }
+}
+
+document.querySelectorAll('.stars-input').forEach(container => {
+  buildStars(container, container.dataset.id);
+});
+
+// PRATOS
+function addPrato() {
+  const list = document.getElementById('pratos-list');
+  const div = document.createElement('div');
+  div.className = 'prato-item';
+  div.innerHTML = '<input class="form-input" type="text" placeholder="Nome do prato ou petisco"><button class="prato-remove" onclick="this.parentElement.remove()">×</button>';
+  list.appendChild(div);
+}
+
+// DELETE CONFIRM
+function confirmDelete(item) {
+  if (confirm(`Tem certeza que deseja apagar esta ${item}? Esta ação não pode ser desfeita.`)) {
+    alert(`${item.charAt(0).toUpperCase() + item.slice(1)} removida com sucesso.`);
+  }
+}
+</script>
+
+<!-- MODAL: SUGESTÃO DE SLOT -->
+<div class="modal-overlay" id="modal-sugestao">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Slot sugerido</div>
+      <button class="modal-close" onclick="closeModal('modal-sugestao');clearSuggestions()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:10px 0 20px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;color:var(--wine);letter-spacing:0.06em" id="sugestao-slot">A31</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">melhor posição para este vinho</div>
+      </div>
+      <div style="background:var(--cream);border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Vinho</div>
+        <div style="font-size:14px;font-weight:500;color:var(--dark)" id="sugestao-wine">Sassicaia 2019</div>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:16px">O slot está piscando em dourado no mapa. Aceite a sugestão ou escolha outra posição manualmente.</p>
+    </div>
+    <div class="modal-footer" style="padding-bottom:16px;flex-direction:column;gap:8px">
+      <button class="btn btn-primary btn-full" onclick="aceitarSugestao()">✓ Aceitar slot sugerido</button>
+      <button class="btn btn-secondary btn-full" onclick="escolherOutroSlot()">Escolher outro slot no mapa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: AUTH -->
+<div class="modal-overlay" id="modal-auth">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Entrar no Wine & Friends</div>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;line-height:1.6">Entre com seu email para acessar sua adega. Se for seu primeiro acesso, sua conta será criada automaticamente.</p>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="auth-email" type="email" placeholder="seu@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input class="form-input" id="auth-pass" type="password" placeholder="mínimo 6 caracteres">
+      </div>
+      <button class="btn btn-primary btn-full" id="btn-signin" onclick="signIn()">Entrar</button>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:12px;text-align:center;line-height:1.5">Seus dados ficam salvos com segurança e acessíveis em qualquer dispositivo.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
