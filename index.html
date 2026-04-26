@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wine & Friends</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root {
   --wine: #6B1A2A; --wine-light: #8B2A3A; --wine-dark: #3D0A14;
@@ -741,12 +741,93 @@ textarea.form-input { resize: none; min-height: 72px; }
 </div>
 
 <script>
-// ── SUPABASE ──────────────────────────────────────
-const supa = supabase.createClient(
-  'https://mkjrsrbapvxkqfpvhmyd.supabase.co',
-  'sb_publishable_RrXWOSpfZnxBLXNBsT8kbA_3VC_lImZ'
-);
+// ── SUPABASE DIRETO (sem SDK) ─────────────────────
+const SUPA_URL = 'https://mkjrsrbapvxkqfpvhmyd.supabase.co';
+const SUPA_KEY = 'sb_publishable_RrXWOSpfZnxBLXNBsT8kbA_3VC_lImZ';
 let currentUser = null;
+let authToken = null;
+
+const supa = {
+  auth: {
+    signInWithPassword: async ({email, password}) => {
+      const r = await fetch(SUPA_URL+'/auth/v1/token?grant_type=password', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+        body: JSON.stringify({email, password})
+      });
+      const data = await r.json();
+      if (data.error || data.error_description) return {error: {message: data.error_description||data.error}};
+      authToken = data.access_token;
+      return {data: {user: data.user}, error: null};
+    },
+    signUp: async ({email, password}) => {
+      const r = await fetch(SUPA_URL+'/auth/v1/signup', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+        body: JSON.stringify({email, password})
+      });
+      const data = await r.json();
+      if (data.error || data.msg) return {error: {message: data.msg||data.error}};
+      return {data, error: null};
+    },
+    signOut: async () => { authToken = null; }
+  },
+  from: (table) => ({
+    select: (cols='*') => ({
+      eq: (col, val) => ({
+        eq: (col2, val2) => ({
+          single: async () => {
+            const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${col}=eq.${val}&${col2}=eq.${val2}&select=${cols}`, {
+              headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken||SUPA_KEY),'Accept':'application/vnd.pgrst.object+json'}
+            });
+            const data = await r.json();
+            return {data, error: r.ok?null:data};
+          },
+          then: async (cb) => {
+            const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${col}=eq.${val}&${col2}=eq.${val2}&select=${cols}`, {
+              headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken||SUPA_KEY)}
+            });
+            const data = await r.json();
+            return cb({data, error: r.ok?null:data});
+          }
+        }),
+        then: async (cb) => {
+          const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${col}=eq.${val}&select=${cols}`, {
+            headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken||SUPA_KEY)}
+          });
+          const data = await r.json();
+          return cb({data, error: r.ok?null:data});
+        }
+      })
+    }),
+    insert: (rows) => ({
+      select: async () => {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+          method:'POST',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken||SUPA_KEY),'Content-Type':'application/json','Prefer':'return=representation'},
+          body: JSON.stringify(rows[0])
+        });
+        const data = await r.json();
+        return {data: Array.isArray(data)?data:[data], error: r.ok?null:data};
+      },
+      then: async (cb) => {
+        const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+          method:'POST',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken||SUPA_KEY),'Content-Type':'application/json','Prefer':'return=representation'},
+          body: JSON.stringify(rows[0])
+        });
+        const data = await r.json();
+        return cb({data: Array.isArray(data)?data:[data], error: r.ok?null:data});
+      }
+    }),
+    delete: () => ({
+      eq: (col, val) => fetch(`${SUPA_URL}/rest/v1/${table}?${col}=eq.${val}`, {
+        method:'DELETE',
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+(authToken||SUPA_KEY)}
+      })
+    })
+  })
+};
 
 // ── FONTES (não bloqueante) ───────────────────────
 function loadFonts() {
@@ -891,11 +972,16 @@ async function aceitarSugestao() {
 function escolherOutroSlot() { closeModal('modal-sugestao'); window._choosingSlot=true; alert('Toque no slot desejado no mapa.'); }
 
 async function loadAdega() {
-  if (!currentUser) return;
-  const {data}=await supa.from('vinhos').select('*').eq('user_id',currentUser.id).eq('local','adega');
+  if (!currentUser || !authToken) return;
+  const r = await fetch(`${SUPA_URL}/rest/v1/vinhos?user_id=eq.${currentUser.id}&local=eq.adega&select=*`, {
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken}
+  });
+  const data = await r.json();
+  { const dummy = null;
   if(!data) return;
   Object.keys(slotData).forEach(k=>slotData[k]=null);
   data.forEach(v=>{if(v.slot){slotData[v.slot]={wine:v.nome+(v.safra?' '+v.safra:''),color:v.cor||'#6B1A2A',status:v.status||'ok',id:v.id};renderSlot(v.slot);}});
+  }
   updateStats();
   const cont=document.getElementById('wine-list-adega');
   const empty=document.getElementById('adega-empty');
@@ -918,11 +1004,16 @@ Remover este vinho?')) {
 }
 
 async function loadEstoque() {
-  if (!currentUser) return;
-  const {data}=await supa.from('vinhos').select('*').eq('user_id',currentUser.id).eq('local','estoque');
+  if (!currentUser || !authToken) return;
+  const r2 = await fetch(`${SUPA_URL}/rest/v1/vinhos?user_id=eq.${currentUser.id}&local=eq.estoque&select=*`, {
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken}
+  });
+  const data = await r2.json();
+  { const dummy = null;
   if(!data)return;
   const empty=document.getElementById('estoque-empty');
-  if(data.length===0){if(empty)empty.style.display='flex';return;}
+  }
+  if(!Array.isArray(data)||data.length===0){if(empty)empty.style.display='flex';return;}
   if(empty)empty.style.display='none';
 }
 
