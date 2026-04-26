@@ -944,7 +944,7 @@ async function confirmarVinho() {
   }
   const tipoMap={tinto_guarda:'guarda',tinto_jovem:'tinto',branco:'branco',espumante:'espumante',rose:'tinto'};
   const sid=suggestSlot(tipoMap[tipo]||'tinto');
-  if (!sid) { alert('Sem slots disponíveis.'); return; }
+  if (!sid) { alert('Sem slots disponiveis.'); return; }
   suggestedSlot=sid; pendingWine={wine:nome,color:cor,status:'ok',tipo,preco_pago:preco,qtd};
   clearSuggestions();
   const el=document.getElementById('slot-'+sid);
@@ -987,21 +987,25 @@ async function loadAdega() {
   const empty=document.getElementById('adega-empty');
   if(data.length===0){if(cont)cont.innerHTML='';if(empty)empty.style.display='flex';return;}
   if(empty)empty.style.display='none';
-  if(cont)cont.innerHTML=data.map(v=>`<div class="wine-card" onclick="detalheVinho('${v.id}')"><div class="wine-dot" style="background:${v.cor||'#6B1A2A'}"></div><div class="wine-info"><div class="wine-name">${v.nome}${v.safra?' '+v.safra:''}</div><div class="wine-detail">${v.regiao||''}${v.uvas?' · '+v.uvas:''}</div><div class="wine-local">Slot ${v.slot||'—'}</div></div></div>`).join('');
+  if(cont)cont.innerHTML=data.map(v=>'<div class="wine-card" onclick="detalheVinho(\'' + v.id + '\')"><div class="wine-dot" style="background:'+(v.cor||'#6B1A2A')+'"></div><div class="wine-info"><div class="wine-name">'+v.nome+(v.safra?' '+v.safra:'')+'</div><div class="wine-detail">'+(v.regiao||'')+(v.uvas?' - '+v.uvas:'')+'</div><div class="wine-local">Slot '+(v.slot||'livre')+'</div></div></div>').join('');
 }
 
 async function detalheVinho(id) {
-  const {data}=await supa.from('vinhos').select('*').eq('id',id).single();
-  if(!data)return;
-  if(confirm(data.nome+(data.safra?' '+data.safra:'')+'
-Slot: '+(data.slot||'—')+'
-
-Remover este vinho?')) {
-    await supa.from('vinhos').delete().eq('id',id);
+  const r = await fetch(SUPA_URL+'/rest/v1/vinhos?id=eq.'+id+'&select=*', {
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken,'Accept':'application/vnd.pgrst.object+json'}
+  });
+  const data = await r.json();
+  if(!data || !data.nome) return;
+  const msg = data.nome + (data.safra?' '+data.safra:'') + '\nSlot: ' + (data.slot||'livre') + '\n\nRemover este vinho?';
+  if(confirm(msg)) {
+    await fetch(SUPA_URL+'/rest/v1/vinhos?id=eq.'+id, {
+      method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken}
+    });
     if(data.slot){slotData[data.slot]=null;renderSlot(data.slot);}
     loadAdega();
   }
 }
+
 
 async function loadEstoque() {
   if (!currentUser || !authToken) return;
@@ -1054,12 +1058,12 @@ function copyLink() {
   navigator.clipboard.writeText(url).catch(() => {});
   const btn = document.querySelector('.copy-btn');
   const confirm = document.getElementById('copy-confirm');
-  btn.textContent = '✓ Copiado!';
+  btn.textContent = 'Copiado!';
   btn.style.background = 'var(--success)';
   confirm.style.display = 'block';
   // iOS fix: inicia imediatamente sem esperar fonte
 setTimeout(() => {
-    btn.textContent = '📋 Copiar link';
+    btn.textContent = 'Copiar link';
     btn.style.background = 'var(--dark)';
   }, 3000);
 }
@@ -1076,7 +1080,7 @@ function buildStars(container, id) {
   for (let i = 1; i <= 5; i++) {
     const s = document.createElement('span');
     s.className = 'star';
-    s.textContent = '★';
+    s.textContent = '\u2605';
     s.onclick = () => { setStars(container, id, i); calcNota(); };
     container.appendChild(s);
   }
@@ -1093,7 +1097,7 @@ function calcNota() {
     const w = starWeights[id];
     if (w === 0) return;
     const el = document.getElementById(id);
-    if (!el || el.textContent === '—') return;
+    if (!el || el.textContent === '-') return;
     const v = parseInt(el.textContent);
     if (isNaN(v)) return;
     hasAny = true;
@@ -1102,7 +1106,7 @@ function calcNota() {
   const scoreEl = document.getElementById('nota-score');
   const badge = document.getElementById('nota-badge');
   if (!hasAny || max === 0) {
-    scoreEl.textContent = '—';
+    scoreEl.textContent = '-';
     badge.textContent = 'Aguardando';
     badge.style.background = 'rgba(255,255,255,0.1)';
     badge.style.color = 'rgba(245,240,232,0.4)';
