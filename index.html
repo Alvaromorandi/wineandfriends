@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wine & Friends</title>
-<!-- fontes carregadas via JS após splash -->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -12,7 +12,7 @@
   --wine-bar: #8B2A3A; --wine-bar-border: rgba(255,220,200,0.15);
   --gold: #C9A84C; --gold-light: #E8C878;
   --cream: #F5F0E8; --cream-dark: #EDE6D6;
-  --dark: #1A1008; --dark2: #2A1E10;
+  --wine-bar: #8B2A3A; --dark: #1A1008; --dark2: #2A1E10;
   --text: #3D2B1A; --text-muted: #8A7060;
   --white: #FDFAF5;
   --success: #2D6A4F; --warn: #9A6B00; --danger: #8B1A1A;
@@ -24,11 +24,11 @@
 body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; font-size: 15px; }
 
 /* SPLASH */
-#splash { font-family: Georgia, "Times New Roman", serif; position: fixed; inset: 0; background: var(--dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.6s; }
+#splash { position: fixed; inset: 0; background: var(--dark); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; transition: opacity 0.6s; }
 .splash-logo { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 300; color: var(--cream); letter-spacing: 0.04em; text-align: center; }
 .splash-logo span { color: var(--gold); font-style: italic; }
 .splash-by { font-size: 16px; color: rgba(201,168,76,0.6); margin-top: 6px; letter-spacing: 0.08em; font-family: 'Cormorant Garamond', serif; font-style: italic; text-align: center; }
-
+.splash-tagline { color: var(--text-muted); margin-top: 10px; letter-spacing: 0.12em; font-size: 11px; text-transform: uppercase; }
 .splash-line { width: 60px; height: 1px; background: var(--gold); margin: 20px auto; opacity: 0.4; }
 
 /* LAYOUT */
@@ -84,22 +84,22 @@ body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(
 .adega-frame { background: var(--dark2); border-radius: 12px; padding: 12px; border: 1px solid rgba(201,168,76,0.2); }
 .bandeja-row { display: flex; gap: 5px; margin-bottom: 5px; justify-content: center; }
 .bandeja-row:last-child { margin-bottom: 0; }
-.nicho { width: 44px; height: 30px; border-radius: 5px; cursor: pointer; transition: transform 0.15s; display: flex; align-items: center; justify-content: center; position: relative; }
-.slot-label { font-size: 8.5px; font-weight: 700; letter-spacing: 0; line-height: 1; pointer-events: none; font-family: 'DM Sans', system-ui, sans-serif; }
-.nicho.ocupado .slot-label, .nicho.alerta .slot-label { color: #FFE8D6; }
-.nicho.vazio .slot-label { color: rgba(255,255,255,0.55); }
-.nicho.sugerido { background: var(--gold) !important; animation: pulse-gold 1.2s ease-in-out infinite; }
-@keyframes pulse-gold { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.nicho { width: 44px; height: 30px; border-radius: 5px; cursor: pointer; transition: transform 0.15s; display: flex; align-items: center; justify-content: center; }
+.slot-label { font-size: 8.5px; font-weight: 700; font-family: system-ui, sans-serif; pointer-events: none; }
+.nicho.ocupado .slot-label { color: #FFE8D6; }
+.nicho.vazio .slot-label { color: rgba(255,255,255,0.45); }
+.nicho.sugerido { background: var(--gold) !important; animation: pg 1.2s ease-in-out infinite; }
+@keyframes pg { 0%,100%{opacity:1} 50%{opacity:0.55} }
 .nicho:hover { transform: scale(1.08); }
 .nicho.ocupado { background: var(--wine); }
 .nicho.alerta { background: var(--gold); }
 .nicho.vazio { background: rgba(255,255,255,0.07); border: 1px dashed rgba(255,255,255,0.15); }
 .transversal-row { display: flex; gap: 8px; margin-top: 6px; justify-content: center; }
 .nicho-tranv { width: 70px; height: 34px; border-radius: 6px; cursor: pointer; transition: transform 0.15s; display: flex; align-items: center; justify-content: center; }
-.nicho-tranv .slot-label { font-size: 8.5px; font-weight: 700; pointer-events: none; font-family: 'DM Sans', system-ui, sans-serif; }
-.nicho-tranv.ocupado .slot-label, .nicho-tranv.alerta .slot-label { color: #FFE8D6; }
-.nicho-tranv.vazio .slot-label { color: rgba(255,255,255,0.55); }
-.nicho-tranv.sugerido { background: var(--gold) !important; animation: pulse-gold 1.2s ease-in-out infinite; }
+.nicho-tranv .slot-label { font-size: 8.5px; font-weight: 700; font-family: system-ui, sans-serif; pointer-events: none; }
+.nicho-tranv.ocupado .slot-label { color: #FFE8D6; }
+.nicho-tranv.vazio .slot-label { color: rgba(255,255,255,0.45); }
+.nicho-tranv.sugerido { background: var(--gold) !important; animation: pg 1.2s ease-in-out infinite; }
 .nicho-tranv:hover { transform: scale(1.05); }
 .nicho-tranv.ocupado { background: var(--wine); }
 .nicho-tranv.alerta { background: var(--gold); }
@@ -276,37 +276,25 @@ textarea.form-input { resize: none; min-height: 72px; }
   <div class="splash-by">by Alvaro Morandi</div>
   
   <div class="splash-line"></div>
-  <button id="btn-iniciar" onclick="iniciarApp()" style="
-    margin-top: 32px;
-    background: transparent;
-    border: 1px solid rgba(201,168,76,0.6);
-    color: #C9A84C;
-    font-family: Georgia, serif;
-    font-size: 14px;
-    letter-spacing: 0.18em;
-    padding: 14px 40px;
-    border-radius: 40px;
-    cursor: pointer;
-    text-transform: uppercase;
-  ">Iniciar</button>
+  <button onclick="iniciarApp()" style="margin-top:28px;background:transparent;border:1px solid rgba(201,168,76,0.6);color:#C9A84C;font-family:Georgia,serif;font-size:14px;letter-spacing:0.18em;padding:14px 40px;border-radius:40px;cursor:pointer;text-transform:uppercase">Iniciar</button>
 </div>
 
-<!-- LOGIN PAGE -->
-<div id="pg-login" style="display:none;position:fixed;inset:0;background:var(--dark);z-index:200;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;">
-  <div style="font-family:Georgia,serif;font-size:36px;font-weight:300;color:var(--cream);letter-spacing:0.04em;text-align:center;margin-bottom:4px">Wine <span style="color:#C9A84C;font-style:italic">&</span> Friends</div>
-  <div style="font-size:13px;color:rgba(201,168,76,0.6);font-family:Georgia,serif;font-style:italic;letter-spacing:0.06em;margin-bottom:32px">by Alvaro Morandi</div>
+<!-- LOGIN -->
+<div id="pg-login" style="display:none;position:fixed;inset:0;background:#1A1008;z-index:200;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;">
+  <div style="font-family:Georgia,serif;font-size:36px;font-weight:300;color:#F5F0E8;text-align:center;margin-bottom:4px">Wine <span style="color:#C9A84C;font-style:italic">&</span> Friends</div>
+  <div style="font-size:14px;color:rgba(201,168,76,0.6);font-family:Georgia,serif;font-style:italic;margin-bottom:32px">by Alvaro Morandi</div>
   <div style="width:100%;max-width:340px;background:rgba(255,255,255,0.05);border-radius:16px;padding:24px;border:1px solid rgba(201,168,76,0.2)">
-    <div style="font-size:14px;color:rgba(245,240,232,0.7);margin-bottom:20px;text-align:center;line-height:1.6">Entre para acessar sua adega.<br>Primeiro acesso cria sua conta automaticamente.</div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:11px;color:rgba(201,168,76,0.7);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px">Email</div>
-      <input id="auth-email" type="email" placeholder="seu@email.com" style="width:100%;padding:12px 14px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);background:rgba(255,255,255,0.08);color:#F5F0E8;font-size:14px;font-family:sans-serif">
+    <p style="font-size:13px;color:rgba(245,240,232,0.7);margin-bottom:18px;text-align:center;line-height:1.6">Entre para acessar sua adega.<br>Primeiro acesso cria sua conta.</p>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:rgba(201,168,76,0.7);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px">Email</div>
+      <input id="auth-email" type="email" placeholder="seu@email.com" style="width:100%;padding:11px 13px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);background:rgba(255,255,255,0.08);color:#F5F0E8;font-size:14px;font-family:sans-serif;outline:none">
     </div>
-    <div style="margin-bottom:20px">
-      <div style="font-size:11px;color:rgba(201,168,76,0.7);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px">Senha</div>
-      <input id="auth-pass" type="password" placeholder="mínimo 6 caracteres" style="width:100%;padding:12px 14px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);background:rgba(255,255,255,0.08);color:#F5F0E8;font-size:14px;font-family:sans-serif">
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;color:rgba(201,168,76,0.7);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px">Senha</div>
+      <input id="auth-pass" type="password" placeholder="mínimo 6 caracteres" style="width:100%;padding:11px 13px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);background:rgba(255,255,255,0.08);color:#F5F0E8;font-size:14px;font-family:sans-serif;outline:none">
     </div>
-    <div id="login-msg" style="display:none;font-size:12px;margin-bottom:12px;text-align:center"></div>
-    <button id="btn-signin" onclick="signIn()" style="width:100%;padding:14px;background:#C9A84C;color:#1A1008;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;font-family:sans-serif">Entrar</button>
+    <div id="login-msg" style="display:none;font-size:12px;margin-bottom:10px;text-align:center;padding:8px;border-radius:6px"></div>
+    <button id="btn-signin" onclick="signIn()" style="width:100%;padding:13px;background:#C9A84C;color:#1A1008;border:none;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;font-family:sans-serif">Entrar</button>
   </div>
 </div>
 
@@ -317,8 +305,7 @@ textarea.form-input { resize: none; min-height: 72px; }
       <div class="app-logo-main">Wine <span>&</span> Friends</div>
       <div class="app-logo-by">by Alvaro Morandi</div>
     </div>
-    <div class="header-icons" style="align-items:center">
-      <span id="user-email" style="font-size:9px;color:var(--bar-muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <div class="header-icons" style="align-items:center"><span id="user-email" style="font-size:9px;color:rgba(255,220,195,0.5);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       <button class="header-icon" onclick="openModal('modal-tutorial')" title="Tutorial">?</button>
       <button class="header-icon" onclick="openModal('modal-add')">＋</button>
     </div>
@@ -348,7 +335,7 @@ textarea.form-input { resize: none; min-height: 72px; }
       </div>
     </div>
 
-    <div class="empty-state" id="adega-empty">
+    <div class="empty-state">
       <div class="empty-icon">🍷</div>
       <div class="empty-title">Adega vazia</div>
       <div class="empty-sub">Adicione seu primeiro vinho tocando no botão + acima. Fotografe o rótulo e a IA cuida do resto.</div>
@@ -382,7 +369,7 @@ textarea.form-input { resize: none; min-height: 72px; }
       <div class="stat-card"><div class="stat-num" style="color:var(--text-muted)">—</div><div class="stat-lbl">Para adega</div></div>
       <div class="stat-card"><div class="stat-num" style="font-size:18px;padding-top:4px">R$ 0</div><div class="stat-lbl">Valor total</div></div>
     </div>
-    <div class="empty-state" id="estoque-empty">
+    <div class="empty-state">
       <div class="empty-icon">📦</div>
       <div class="empty-title">Estoque vazio</div>
       <div class="empty-sub">Ao adicionar um vinho, escolha "Estoque externo" como destino. Quando quiser transferir para a adega, o app registra a movimentação e sugere o melhor slot disponível.</div>
@@ -417,35 +404,22 @@ textarea.form-input { resize: none; min-height: 72px; }
           <div class="result-row"><span class="result-lbl">Consumo ideal</span><span class="result-val">2025 – 2040</span></div>
         </div>
         <div class="form-group mt8">
-          <label class="form-label">Nome do vinho</label>
-          <input class="form-input" id="inp-nome" type="text" value="Sassicaia 2019">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tipo</label>
-          <select class="form-input" id="sel-tipo">
-            <option value="tinto_guarda">Tinto de guarda</option>
-            <option value="tinto_jovem">Tinto jovem</option>
-            <option value="branco">Branco</option>
-            <option value="espumante">Espumante / Champagne</option>
-            <option value="rose">Rosé</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label class="form-label">Quantidade</label>
-          <input class="form-input" id="inp-qtd" type="number" placeholder="Nº de garrafas" value="1">
+          <input class="form-input" type="number" placeholder="Nº de garrafas" value="2">
         </div>
         <div class="form-group">
           <label class="form-label">Preço pago (R$)</label>
-          <input class="form-input" id="inp-preco" type="number" placeholder="0,00">
+          <input class="form-input" type="number" placeholder="0,00">
         </div>
         <div class="form-group">
           <label class="form-label">Destino</label>
-          <select class="form-input" id="sel-destino">
-            <option value="adega">Adega (sugerir slot)</option>
-            <option value="estoque">Estoque externo</option>
+          <select class="form-input">
+            <option>Adega A</option>
+            <option>Adega B</option>
+            <option>Estoque externo</option>
           </select>
         </div>
-        <button class="btn btn-primary btn-full" onclick="confirmarVinho()">Confirmar e guardar ↗</button>
+        <button class="btn btn-primary btn-full" onclick="showPage('pg-adega',null)">Confirmar e guardar</button>
       </div>
     </div>
   </div>
@@ -691,7 +665,7 @@ textarea.form-input { resize: none; min-height: 72px; }
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Nome do vinho</label><input class="form-input" type="text" placeholder="Ex: Opus One 2019"></div>
       <div class="form-group"><label class="form-label">Produtor / Região</label><input class="form-input" type="text" placeholder="Ex: Robert Mondavi · Napa Valley"></div>
-      <div class="form-group"><label class="form-label">Preço máximo (R$)</label><input class="form-input" id="inp-preco" type="number" placeholder="0,00"></div>
+      <div class="form-group"><label class="form-label">Preço máximo (R$)</label><input class="form-input" type="number" placeholder="0,00"></div>
       <div class="form-group"><label class="form-label">Observações</label><input class="form-input" type="text" placeholder="Safra preferida, ocasião..."></div>
     </div>
     <div class="modal-footer" style="padding-bottom:16px">
@@ -767,53 +741,90 @@ textarea.form-input { resize: none; min-height: 72px; }
 </div>
 
 <script>
-// SPLASH — controlado pelo botão Iniciar
-// Carrega fontes em segundo plano após interação
+// ── SUPABASE ──────────────────────────────────────
+const supa = supabase.createClient(
+  'https://mkjrsrbapvxkqfpvhmyd.supabase.co',
+  'sb_publishable_RrXWOSpfZnxBLXNBsT8kbA_3VC_lImZ'
+);
+let currentUser = null;
+
+// ── FONTES (não bloqueante) ───────────────────────
 function loadFonts() {
-  var link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap';
-  document.head.appendChild(link);
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap';
+  document.head.appendChild(l);
 }
 
+// ── SPLASH → LOGIN ────────────────────────────────
 function iniciarApp() {
   loadFonts();
   var splash = document.getElementById('splash');
-  splash.style.transition = 'opacity 0.5s';
+  splash.style.transition = 'opacity 0.4s';
   splash.style.opacity = '0';
   setTimeout(function() {
     splash.style.display = 'none';
-    checkAuth();
-  }, 500);
+    document.getElementById('pg-login').style.display = 'flex';
+  }, 400);
 }
 
-// ── ESTADO DOS SLOTS ──────────────────────────────
-const slotData = {}; // slotId -> { wine, color, status }
-
-function initSlots() {
-  ['A','B'].forEach(l => {
-    for (let b = 1; b <= 6; b++)
-      for (let p = 1; p <= 5; p++)
-        slotData[l+b+p] = null;
-    for (let p = 1; p <= 4; p++)
-      slotData[l+'7'+p] = null;
-  });
+// ── AUTH ──────────────────────────────────────────
+function mostrarApp() {
+  document.getElementById('pg-login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
 }
-initSlots();
 
-// ── CONSTRUÇÃO DO MAPA ────────────────────────────
+function showMsg(txt, ok) {
+  var el = document.getElementById('login-msg');
+  el.textContent = txt;
+  el.style.background = ok ? '#D4EDDA' : '#FADBD8';
+  el.style.color = ok ? '#2D6A4F' : '#8B1A1A';
+  el.style.display = 'block';
+}
+
+async function signIn() {
+  var email = document.getElementById('auth-email').value.trim();
+  var pass  = document.getElementById('auth-pass').value;
+  var btn   = document.getElementById('btn-signin');
+  if (!email || !pass) { showMsg('Preencha email e senha.', false); return; }
+  btn.textContent = 'Entrando...'; btn.disabled = true;
+  try {
+    var r = await supa.auth.signInWithPassword({ email, password: pass });
+    if (r.error) {
+      var r2 = await supa.auth.signUp({ email, password: pass });
+      if (r2.error) { showMsg('Erro: ' + r2.error.message, false); btn.textContent='Entrar'; btn.disabled=false; return; }
+      showMsg('Conta criada! Verifique seu email para confirmar.', true);
+      btn.textContent='Entrar'; btn.disabled=false; return;
+    }
+    currentUser = r.data.user;
+    document.getElementById('user-email').textContent = currentUser.email;
+    mostrarApp();
+    loadAdega();
+    loadEstoque();
+  } catch(e) {
+    showMsg('Erro de conexão. Verifique a internet.', false);
+    btn.textContent='Entrar'; btn.disabled=false;
+  }
+}
+
+// ── ESTADO ADEGA ──────────────────────────────────
+const slotData = {};
+['A','B'].forEach(l => {
+  for (let b=1;b<=6;b++) for (let p=1;p<=5;p++) slotData[l+b+p]=null;
+  for (let p=1;p<=4;p++) slotData[l+'7'+p]=null;
+});
+
+// ── MAPA ──────────────────────────────────────────
 function buildAdega(frameId, letter) {
   const frame = document.getElementById(frameId);
-  for (let b = 1; b <= 6; b++) {
+  for (let b=1;b<=6;b++) {
     const row = document.createElement('div');
     row.className = 'bandeja-row';
-    for (let p = 1; p <= 5; p++) {
-      const sid = letter + b + p;
+    for (let p=1;p<=5;p++) {
+      const sid = letter+b+p;
       const n = document.createElement('div');
-      n.className = 'nicho vazio';
-      n.id = 'slot-' + sid;
-      n.dataset.slot = sid;
-      n.innerHTML = '<span class="slot-label">' + sid + '</span>';
+      n.className = 'nicho vazio'; n.id = 'slot-'+sid;
+      n.innerHTML = '<span class="slot-label">'+sid+'</span>';
       n.onclick = () => onSlotClick(sid);
       row.appendChild(n);
     }
@@ -821,175 +832,100 @@ function buildAdega(frameId, letter) {
   }
   const transv = document.createElement('div');
   transv.className = 'transversal-row';
-  for (let p = 1; p <= 4; p++) {
-    const sid = letter + '7' + p;
+  for (let p=1;p<=4;p++) {
+    const sid = letter+'7'+p;
     const n = document.createElement('div');
-    n.className = 'nicho-tranv vazio';
-    n.id = 'slot-' + sid;
-    n.dataset.slot = sid;
-    n.innerHTML = '<span class="slot-label">' + sid + '</span>';
+    n.className = 'nicho-tranv vazio'; n.id = 'slot-'+sid;
+    n.innerHTML = '<span class="slot-label">'+sid+'</span>';
     n.onclick = () => onSlotClick(sid);
     transv.appendChild(n);
   }
   frame.appendChild(transv);
 }
-buildAdega('frame-a', 'A');
-buildAdega('frame-b', 'B');
+buildAdega('frame-a','A');
+buildAdega('frame-b','B');
 
-// ── CLIQUE NO SLOT ────────────────────────────────
-function onSlotClick(sid) {
-  const data = slotData[sid];
-  const letter = sid[0];
-  const bandeja = sid[1];
-  const pos = sid.slice(2);
-  const bandejaLabel = bandeja === '7' ? 'Bandeja 7 — compartimento inferior' : 'Bandeja ' + bandeja;
-  if (data) {
-    const r = confirm(
-      'Slot ' + sid + ' — Adega ' + letter + '\n' +
-      bandejaLabel + ', Posição ' + pos + '\n\n' +
-      '🍷 ' + data.wine + '\n\n' +
-      'Deseja remover este vinho?'
-    );
-    if (r) { slotData[sid] = null; renderSlot(sid); updateStats(); }
-  } else {
-    alert('Slot ' + sid + ' livre\nAdega ' + letter + ' · ' + bandejaLabel + ', Posição ' + pos + '\n\nUse o botão + para adicionar um vinho a este slot.');
+// NAV
+async function confirmarVinho() {
+  if (!currentUser) { document.getElementById('pg-login').style.display='flex'; document.getElementById('app').style.display='none'; return; }
+  const tipo=document.getElementById('sel-tipo')?.value||'tinto_jovem';
+  const nome=document.getElementById('inp-nome')?.value||'Novo vinho';
+  const destino=document.getElementById('sel-destino')?.value||'adega';
+  const qtd=parseInt(document.getElementById('inp-qtd')?.value||1);
+  const preco=parseFloat(document.getElementById('inp-preco')?.value)||null;
+  const corMap={tinto_guarda:'#6B1A2A',tinto_jovem:'#8B2A3A',branco:'#C9A84C',espumante:'#A09060',rose:'#D4537E'};
+  const cor=corMap[tipo]||'#6B1A2A';
+  if (destino==='estoque') {
+    await supa.from('vinhos').insert([{nome,tipo,cor,qtd,preco_pago:preco,local:'estoque',user_id:currentUser.id}]);
+    alert('Adicionado ao estoque!');
+    document.getElementById('scan-result').style.display='none';
+    loadEstoque(); showPage('pg-estoque',null); return;
   }
-}
-
-// ── RENDERIZAR SLOT ───────────────────────────────
-function renderSlot(sid) {
-  const el = document.getElementById('slot-' + sid);
-  if (!el) return;
-  const data = slotData[sid];
-  el.className = el.classList.contains('nicho-tranv') ? 'nicho-tranv' : 'nicho';
-  el.classList.add(data ? (data.status === 'alerta' ? 'alerta' : 'ocupado') : 'vazio');
-  if (data) el.style.background = data.color || '';
-  else el.style.background = '';
-}
-
-// ── SUGESTÃO DE SLOT ──────────────────────────────
-function suggestSlot(tipo) {
-  // Tipo: 'guarda' -> bandejas 3-5, 'branco' -> bandejas 1-2, 'espumante' -> bandeja 7, padrão -> primeira livre
-  const order = tipo === 'espumante'
-    ? [...Array.from({length:4},(_,i)=>'A7'+(i+1)), ...Array.from({length:4},(_,i)=>'B7'+(i+1))]
-    : tipo === 'guarda'
-    ? ['A31','A32','A33','A34','A35','A41','A42','A43','A44','A45','A51','A52','A53','A54','A55',
-       'B31','B32','B33','B34','B35','B41','B42','B43','B44','B45']
-    : tipo === 'branco'
-    ? ['A11','A12','A13','A14','A15','A21','A22','A23','A24','A25',
-       'B11','B12','B13','B14','B15','B21','B22','B23','B24','B25']
-    : Object.keys(slotData);
-
-  for (const sid of order) {
-    if (slotData[sid] === null) return sid;
-  }
-  // fallback: qualquer livre
-  return Object.keys(slotData).find(k => slotData[k] === null) || null;
-}
-
-// ── CONFIRMAR CADASTRO COM SUGESTÃO ──────────────
-let pendingWine = null;
-let suggestedSlot = null;
-
-function confirmarVinho() {
-  const tipo = document.getElementById('sel-tipo')?.value || 'tinto';
-  const nome = document.getElementById('inp-nome')?.value || 'Novo vinho';
-  const destino = document.getElementById('sel-destino')?.value || 'adega';
-
-  if (destino === 'estoque') {
-    alert('Vinho adicionado ao estoque externo!');
-    document.getElementById('scan-result').style.display = 'none';
-    showPage('pg-estoque', null);
-    return;
-  }
-
-  const tipoMap = { tinto_guarda: 'guarda', tinto_jovem: 'tinto', branco: 'branco', espumante: 'espumante', rose: 'tinto' };
-  const sid = suggestSlot(tipoMap[tipo] || 'tinto');
-
-  if (!sid) { alert('Não há slots disponíveis na adega.'); return; }
-
-  suggestedSlot = sid;
-  pendingWine = { wine: nome, color: '#6B1A2A', status: 'ok' };
-
-  // Highlight sugestão
+  const tipoMap={tinto_guarda:'guarda',tinto_jovem:'tinto',branco:'branco',espumante:'espumante',rose:'tinto'};
+  const sid=suggestSlot(tipoMap[tipo]||'tinto');
+  if (!sid) { alert('Sem slots disponíveis.'); return; }
+  suggestedSlot=sid; pendingWine={wine:nome,color:cor,status:'ok',tipo,preco_pago:preco,qtd};
   clearSuggestions();
-  const el = document.getElementById('slot-' + sid);
-  if (el) el.classList.add('sugerido');
-
-  // Navega para adega e abre modal de confirmação
-  showPage('pg-adega', null);
-  document.getElementById('sugestao-slot').textContent = sid;
-  document.getElementById('sugestao-wine').textContent = nome;
+  const el=document.getElementById('slot-'+sid);
+  if(el)el.classList.add('sugerido');
+  showPage('pg-adega',null);
+  document.getElementById('sugestao-slot').textContent=sid;
+  document.getElementById('sugestao-wine').textContent=nome;
   openModal('modal-sugestao');
 }
 
-function clearSuggestions() {
-  document.querySelectorAll('.sugerido').forEach(e => e.classList.remove('sugerido'));
-}
-
 async function aceitarSugestao() {
-  if (suggestedSlot && pendingWine) {
-    const vinho = {
-      nome: pendingWine.wine.replace(/ \d{4}$/, ''),
-      cor: pendingWine.color,
-      tipo: pendingWine.tipo,
-      slot: suggestedSlot,
-      local: 'adega',
-      preco_pago: pendingWine.preco_pago || null,
-      qtd: pendingWine.qtd || 1,
-      status: 'ok'
-    };
-    const saved = await salvarVinho(vinho);
-    if (saved) {
-      slotData[suggestedSlot] = { ...pendingWine, id: saved.id };
-      renderSlot(suggestedSlot);
-      updateStats();
-      loadAdega();
-    }
+  if (suggestedSlot&&pendingWine&&currentUser) {
+    const {data}=await supa.from('vinhos').insert([{
+      nome:pendingWine.wine,cor:pendingWine.color,tipo:pendingWine.tipo,
+      slot:suggestedSlot,local:'adega',preco_pago:pendingWine.preco_pago,
+      qtd:pendingWine.qtd,status:'ok',user_id:currentUser.id
+    }]).select();
+    if(data&&data[0]){slotData[suggestedSlot]={...pendingWine,id:data[0].id};renderSlot(suggestedSlot);updateStats();}
   }
-  clearSuggestions();
-  closeModal('modal-sugestao');
-  document.getElementById('scan-result').style.display = 'none';
-  pendingWine = null;
-  suggestedSlot = null;
+  clearSuggestions(); closeModal('modal-sugestao');
+  document.getElementById('scan-result').style.display='none';
+  pendingWine=null; suggestedSlot=null;
 }
 
-function escolherOutroSlot() {
-  closeModal('modal-sugestao');
-  alert('Toque no slot desejado no mapa para confirmar a posição.');
-  // Próximo clique num slot vazio vai alocar o vinho pendente
-  window._choosingSlot = true;
+function escolherOutroSlot() { closeModal('modal-sugestao'); window._choosingSlot=true; alert('Toque no slot desejado no mapa.'); }
+
+async function loadAdega() {
+  if (!currentUser) return;
+  const {data}=await supa.from('vinhos').select('*').eq('user_id',currentUser.id).eq('local','adega');
+  if(!data) return;
+  Object.keys(slotData).forEach(k=>slotData[k]=null);
+  data.forEach(v=>{if(v.slot){slotData[v.slot]={wine:v.nome+(v.safra?' '+v.safra:''),color:v.cor||'#6B1A2A',status:v.status||'ok',id:v.id};renderSlot(v.slot);}});
+  updateStats();
+  const cont=document.getElementById('wine-list-adega');
+  const empty=document.getElementById('adega-empty');
+  if(data.length===0){if(cont)cont.innerHTML='';if(empty)empty.style.display='flex';return;}
+  if(empty)empty.style.display='none';
+  if(cont)cont.innerHTML=data.map(v=>`<div class="wine-card" onclick="detalheVinho('${v.id}')"><div class="wine-dot" style="background:${v.cor||'#6B1A2A'}"></div><div class="wine-info"><div class="wine-name">${v.nome}${v.safra?' '+v.safra:''}</div><div class="wine-detail">${v.regiao||''}${v.uvas?' · '+v.uvas:''}</div><div class="wine-local">Slot ${v.slot||'—'}</div></div></div>`).join('');
 }
 
-// Override onSlotClick para modo escolha
-const _origOnSlotClick = onSlotClick;
-function onSlotClick(sid) {
-  if (window._choosingSlot && slotData[sid] === null && pendingWine) {
-    slotData[sid] = pendingWine;
-    renderSlot(sid);
-    updateStats();
-    clearSuggestions();
-    window._choosingSlot = false;
-    pendingWine = null;
-    alert('Vinho alocado no slot ' + sid + '!');
-    return;
+async function detalheVinho(id) {
+  const {data}=await supa.from('vinhos').select('*').eq('id',id).single();
+  if(!data)return;
+  if(confirm(data.nome+(data.safra?' '+data.safra:'')+'
+Slot: '+(data.slot||'—')+'
+
+Remover este vinho?')) {
+    await supa.from('vinhos').delete().eq('id',id);
+    if(data.slot){slotData[data.slot]=null;renderSlot(data.slot);}
+    loadAdega();
   }
-  _origOnSlotClick(sid);
 }
 
-// ── ESTATÍSTICAS ──────────────────────────────────
-function updateStats() {
-  const total = Object.values(slotData).filter(v => v !== null).length;
-  const livres = Object.keys(slotData).length - total;
-  const alertas = Object.values(slotData).filter(v => v && v.status === 'alerta').length;
-  document.querySelectorAll('#pg-adega .stat-num')[0].textContent = total;
-  document.querySelectorAll('#pg-adega .stat-num')[1].textContent = livres;
-  const aEl = document.querySelectorAll('#pg-adega .stat-num')[2];
-  aEl.textContent = alertas || '—';
-  aEl.style.color = alertas ? 'var(--warn)' : 'var(--text-muted)';
+async function loadEstoque() {
+  if (!currentUser) return;
+  const {data}=await supa.from('vinhos').select('*').eq('user_id',currentUser.id).eq('local','estoque');
+  if(!data)return;
+  const empty=document.getElementById('estoque-empty');
+  if(data.length===0){if(empty)empty.style.display='flex';return;}
+  if(empty)empty.style.display='none';
 }
 
-// NAV
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -1111,23 +1047,19 @@ function confirmDelete(item) {
 }
 </script>
 
-<!-- MODAL: SUGESTÃO DE SLOT -->
 <div class="modal-overlay" id="modal-sugestao">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Slot sugerido</div>
-      <button class="modal-close" onclick="closeModal('modal-sugestao');clearSuggestions()">×</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">Slot sugerido</div><button class="modal-close" onclick="closeModal('modal-sugestao');clearSuggestions()">×</button></div>
     <div class="modal-body">
-      <div style="text-align:center;padding:10px 0 20px">
-        <div style="font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;color:var(--wine);letter-spacing:0.06em" id="sugestao-slot">A31</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">melhor posição para este vinho</div>
+      <div style="text-align:center;padding:8px 0 16px">
+        <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:52px;font-weight:300;color:var(--wine);letter-spacing:0.06em" id="sugestao-slot">A31</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">melhor posição para este vinho</div>
       </div>
-      <div style="background:var(--cream);border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1px solid var(--border)">
+      <div style="background:var(--cream);border-radius:10px;padding:12px 14px;margin-bottom:14px;border:1px solid var(--border)">
         <div style="font-size:11px;color:var(--text-muted);margin-bottom:2px">Vinho</div>
-        <div style="font-size:14px;font-weight:500;color:var(--dark)" id="sugestao-wine">Sassicaia 2019</div>
+        <div style="font-size:14px;font-weight:500;color:var(--dark)" id="sugestao-wine">—</div>
       </div>
-      <p style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:16px">O slot está piscando em dourado no mapa. Aceite a sugestão ou escolha outra posição manualmente.</p>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.6">O slot está piscando em dourado no mapa. Aceite ou escolha outro tocando no mapa.</p>
     </div>
     <div class="modal-footer" style="padding-bottom:16px;flex-direction:column;gap:8px">
       <button class="btn btn-primary btn-full" onclick="aceitarSugestao()">✓ Aceitar slot sugerido</button>
@@ -1135,6 +1067,5 @@ function confirmDelete(item) {
     </div>
   </div>
 </div>
-
 </body>
 </html>
