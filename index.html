@@ -269,6 +269,12 @@ textarea.finp{resize:none;min-height:72px;}
     </div>
     <div class="wlist" id="wine-list-adega"></div>
     <div class="divider"></div>
+    <div style="padding:16px 20px 4px"><div class="sec-title" style="font-size:20px">Consumidos</div></div>
+    <div style="padding:4px 20px 16px">
+      <button class="btn btn-s btn-f" style="font-size:13px" onclick="loadConsumidos()">Ver lista de consumidos</button>
+      <div id="consumidos-list" style="margin-top:12px"></div>
+    </div>
+    <div class="divider"></div>
     <div style="padding:16px 20px 4px"><div class="sec-title" style="font-size:20px">Lista de desejos</div></div>
     <div style="padding:12px 20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -316,9 +322,14 @@ textarea.finp{resize:none;min-height:72px;}
       <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
       <div id="scan-result" style="display:none">
         <img id="foto-preview" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-bottom:10px">
+        <div id="scan-loading" style="display:none;flex-direction:column;align-items:center;padding:24px;gap:10px">
+          <div style="font-size:28px">&#x1F50D;</div>
+          <div style="font-size:13px;color:var(--muted);text-align:center">Analisando o rotulo...<br>A IA esta extraindo os dados</div>
+        </div>
+        <div id="scan-fields" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="font-size:13px;font-weight:500;color:var(--dark)">Preencha os dados</span>
-          <span class="ai-tag">Foto capturada</span>
+          <span style="font-size:13px;font-weight:500;color:var(--dark)">Confirme os dados</span>
+          <span class="ai-tag">IA - Gemini</span>
         </div>
         <div class="fgrp">
           <label class="flbl">Produtor</label>
@@ -357,6 +368,8 @@ textarea.finp{resize:none;min-height:72px;}
             <option value="adega">Adega (sugerir slot)</option>
             <option value="estoque">Estoque externo</option>
           </select>
+        </div>
+        <div class="fgrp"><label class="flbl">Pontuacao (opcional)</label><input class="finp" id="inp-pontuacao" type="text" placeholder="Ex: 97 pts WS"></div>
         </div>
         <button class="btn btn-p btn-f" onclick="confirmarVinho()">Confirmar e guardar</button>
       </div>
@@ -639,6 +652,7 @@ textarea.finp{resize:none;min-height:72px;}
 <script>
 var SUPA_URL = 'https://mkjrsrbapvxkqfpvhmyd.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ranJzcmJhcHZ4a3FmcHZobXlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMTg0NDAsImV4cCI6MjA5Mjc5NDQ0MH0.fuKpi0tFmn7LoO2BBl2qk_rwofgQNJOtTT0EsYJji28';
+var GEMINI_KEY = 'AIzaSyCH1K9cMnmQrguLukhBIunL94LCpKt49RI';
 var authToken = null;
 var currentUser = null;
 var pendingWine = null;
@@ -770,20 +784,68 @@ function onSlotClick(sid) {
     return;
   }
   if (d) {
-    if (confirm('Slot '+sid+' - Adega '+letter+'\n'+bl+', Pos. '+pos+'\n\n'+d.wine+'\n\nRemover este vinho?')) {
-      if (d.id) {
-        fetch(SUPA_URL+'/rest/v1/vinhos?id=eq.'+d.id, {
-          method:'DELETE',
-          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken}
-        });
-      }
-      slotData[sid] = null;
-      renderSlot(sid);
-      updateStats();
-    }
+    abrirFichaVinho(sid, d);
   } else {
-    alert('Slot '+sid+' livre\nAdega '+letter+' - '+bl+', Posicao '+pos);
+    alert('Slot '+sid+' livre\nAdega '+letter+' - '+bl+', Posicao '+pos+'\n\nUse o botao + para adicionar um vinho.');
   }
+}
+
+async function abrirFichaVinho(sid, d) {
+  // Buscar dados completos do banco
+  var vinho = null;
+  if (d.id) {
+    var r = await fetch(SUPA_URL+'/rest/v1/vinhos?id=eq.'+d.id+'&select=*', {
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken,'Accept':'application/vnd.pgrst.object+json'}
+    });
+    vinho = await r.json();
+  }
+  // Montar modal com ficha completa
+  var v = vinho || d;
+  var html = '<div style="font-family:Georgia,serif;font-size:20px;font-weight:500;color:var(--dark);margin-bottom:4px">'+(v.nome||d.wine)+'</div>';
+  if (v.produtor) html += '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">'+v.produtor+'</div>';
+  html += '<div style="background:var(--cream);border-radius:10px;padding:12px;border:1px solid var(--border);margin-bottom:12px">';
+  var campos = [
+    ['Slot', sid],
+    ['Safra', v.safra],
+    ['Regiao', v.regiao],
+    ['Uvas', v.uvas],
+    ['Teor alc.', v.teor],
+    ['Consumo', v.consumo_de&&v.consumo_ate ? v.consumo_de+' - '+v.consumo_ate : (v.consumo_ate||'')],
+    ['Pontuacao', v.pontuacao],
+    ['Preco pago', v.preco_pago ? 'R$ '+parseFloat(v.preco_pago).toLocaleString('pt-BR',{minimumFractionDigits:2}) : ''],
+    ['Quantidade', v.qtd]
+  ];
+  campos.forEach(function(c) {
+    if (c[1]) html += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)">'+c[0]+'</span><span style="font-weight:500;color:var(--dark)">'+c[1]+'</span></div>';
+  });
+  html += '</div>';
+  document.getElementById('ficha-body').innerHTML = html;
+  document.getElementById('ficha-sid').value = sid;
+  document.getElementById('ficha-id').value = d.id||'';
+  document.getElementById('ficha-wine').value = v.nome||d.wine;
+  openModal('modal-ficha');
+}
+
+async function consumirVinho() {
+  var sid = document.getElementById('ficha-sid').value;
+  var id = document.getElementById('ficha-id').value;
+  var nome = document.getElementById('ficha-wine').value;
+  if (!confirm('Confirmar consumo de\n'+nome+'\n\nO slot sera liberado e o vinho arquivado na lista de consumidos.')) return;
+  var hoje = new Date().toISOString().slice(0,10);
+  if (id) {
+    // Arquivar como consumido
+    await fetch(SUPA_URL+'/rest/v1/vinhos?id=eq.'+id, {
+      method:'PATCH',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken,'Content-Type':'application/json'},
+      body: JSON.stringify({local:'consumido', slot:null, data_consumo:hoje})
+    });
+  }
+  slotData[sid] = null;
+  renderSlot(sid);
+  updateStats();
+  closeModal('modal-ficha');
+  alert('Saude! '+nome+' arquivado na lista de consumidos.');
+  loadAdega();
 }
 
 function updateStats() {
@@ -840,7 +902,8 @@ function confirmarVinho() {
   var sid = suggestSlot(tipoMap[tipo]||'tinto');
   if (!sid) { alert('Sem slots disponiveis.'); return; }
   sugSlot = sid;
-  pendingWine = {wine:nome+(safra?' '+safra:''), color:cor, status:'ok', tipo:tipo, preco_pago:preco, qtd:qtd, produtor:produtor, safra:safra, regiao:regiao, uvas:uvas, teor:teor, consumo_de:consumo_de, consumo_ate:consumo_ate};
+  var pontuacao = (document.getElementById('inp-pontuacao')||{}).value||'';
+  pendingWine = {wine:nome+(safra?' '+safra:''), color:cor, status:'ok', tipo:tipo, preco_pago:preco, qtd:qtd, produtor:produtor, safra:safra, regiao:regiao, uvas:uvas, teor:teor, consumo_de:consumo_de, consumo_ate:consumo_ate, pontuacao:pontuacao};
   clearPick();
   var el = document.getElementById('slot-'+sid);
   if (el) el.classList.add('pick');
@@ -902,6 +965,19 @@ function loadAdega() {
   });
 }
 
+function loadConsumidos() {
+  if (!currentUser || !authToken) return;
+  fetch(SUPA_URL+'/rest/v1/vinhos?user_id=eq.'+currentUser.id+'&local=eq.consumido&select=*&order=data_consumo.desc', {
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken}
+  }).then(function(r){return r.json();}).then(function(data){
+    var cont = document.getElementById('consumidos-list');
+    if (!Array.isArray(data) || data.length===0) { cont.innerHTML='<div style="font-size:13px;color:var(--muted);padding:8px 0">Nenhum vinho consumido ainda.</div>'; return; }
+    cont.innerHTML = data.map(function(v){
+      return '<div class="wcard" style="margin-bottom:8px"><div class="wdot" style="background:'+(v.cor||'#6B1A2A')+'"></div><div class="winfo"><div class="wname">'+v.nome+(v.safra?' '+v.safra:'')+'</div><div class="wdetail">'+(v.regiao||'')+'</div><div class="wloc" style="color:var(--ok)">Consumido em: '+(v.data_consumo||'data nao registrada')+'</div></div></div>';
+    }).join('');
+  });
+}
+
 function loadEstoque() {
   if (!currentUser || !authToken) return;
   fetch(SUPA_URL+'/rest/v1/vinhos?user_id=eq.'+currentUser.id+'&local=eq.estoque&select=*', {
@@ -916,6 +992,24 @@ function loadEstoque() {
       return '<div class="wcard"><div class="wdot" style="background:'+(v.cor||'#6B1A2A')+'"></div><div class="winfo"><div class="wname">'+v.nome+(v.safra?' '+v.safra:'')+'</div><div class="wdetail">'+(v.regiao||'')+' - Qtd: '+(v.qtd||1)+'</div></div><button class="btn btn-p" style="font-size:11px;padding:6px 10px" onclick="transferir(\''+v.id+'\')">Transferir</button></div>';
     }).join('');
   });
+}
+
+function removerVinhoSlot() {
+  var sid = document.getElementById('ficha-sid').value;
+  var id = document.getElementById('ficha-id').value;
+  var nome = document.getElementById('ficha-wine').value;
+  if (!confirm('Remover '+nome+' da adega?\nEsta acao nao pode ser desfeita.')) return;
+  if (id) {
+    fetch(SUPA_URL+'/rest/v1/vinhos?id=eq.'+id, {
+      method:'DELETE',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+authToken}
+    });
+  }
+  slotData[sid] = null;
+  renderSlot(sid);
+  updateStats();
+  closeModal('modal-ficha');
+  loadAdega();
 }
 
 function transferir(id) {
@@ -955,21 +1049,56 @@ function showScanResult() { document.getElementById('scan-result').style.display
 function handlePhoto(input) {
   if (!input.files || !input.files[0]) return;
   var file = input.files[0];
-  // Mostra resultado com campos vazios para preenchimento manual
-  // Em versao futura, aqui entra a IA para extrair dados do rotulo
-  document.getElementById('scan-result').style.display = 'block';
-  document.getElementById('inp-nome').value = '';
-  document.getElementById('inp-nome').placeholder = 'Digite o nome do vinho';
-  // Mostra preview da foto
   var reader = new FileReader();
   reader.onload = function(e) {
     var preview = document.getElementById('foto-preview');
-    if (preview) {
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-    }
+    if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+    var base64 = e.target.result.split(',')[1];
+    // Mostrar loading
+    document.getElementById('scan-result').style.display = 'block';
+    document.getElementById('scan-loading').style.display = 'flex';
+    document.getElementById('scan-fields').style.display = 'none';
+    extrairDadosRotulo(base64);
   };
   reader.readAsDataURL(file);
+}
+
+async function extrairDadosRotulo(base64) {
+  try {
+    var prompt = 'Analise esta imagem de rotulo de vinho e extraia TODOS os dados visiveis. Responda APENAS em JSON valido com estes campos: {"nome":"","produtor":"","safra":"","regiao":"","pais":"","uvas":"","teor":"","consumo_de":"","consumo_ate":"","pontuacao":"","notas_produtor":""}. Para consumo_de e consumo_ate informe apenas o ano. Para pontuacao use formato "XX pts WS" se conhecer. Se nao souber um campo deixe vazio. Nao inclua texto fora do JSON.';
+    var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_KEY, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{parts: [
+          {text: prompt},
+          {inline_data: {mime_type: 'image/jpeg', data: base64}}
+        ]}]
+      })
+    });
+    var data = await resp.json();
+    var text = data.candidates[0].content.parts[0].text;
+    // Limpar markdown se vier com backticks
+    text = text.replace(/```json/g,'').replace(/```/g,'').trim();
+    var info = JSON.parse(text);
+    // Preencher campos
+    document.getElementById('inp-nome').value = (info.nome||'') + (info.safra?' '+info.safra:'');
+    document.getElementById('inp-produtor').value = info.produtor||'';
+    document.getElementById('inp-safra').value = info.safra||'';
+    document.getElementById('inp-regiao').value = (info.regiao||'') + (info.pais?', '+info.pais:'');
+    document.getElementById('inp-uvas').value = info.uvas||'';
+    document.getElementById('inp-teor').value = info.teor||'';
+    document.getElementById('inp-de').value = info.consumo_de||'';
+    document.getElementById('inp-ate').value = info.consumo_ate||'';
+    document.getElementById('inp-pontuacao').value = info.pontuacao||'';
+    document.getElementById('scan-loading').style.display = 'none';
+    document.getElementById('scan-fields').style.display = 'block';
+  } catch(e) {
+    document.getElementById('scan-loading').style.display = 'none';
+    document.getElementById('scan-fields').style.display = 'block';
+    console.error('Erro Gemini:', e);
+    alert('Nao foi possivel ler o rotulo automaticamente. Preencha os campos manualmente.');
+  }
 }
 
 function copyLink() {
@@ -1042,5 +1171,25 @@ document.querySelectorAll('.sr-stars').forEach(function(container){
   buildStars(container, container.dataset.id);
 });
 </script>
+
+<div class="modal-overlay" id="modal-ficha">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Ficha do vinho</div>
+      <button class="modal-close" onclick="closeModal('modal-ficha')">x</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ficha-sid">
+      <input type="hidden" id="ficha-id">
+      <input type="hidden" id="ficha-wine">
+      <div id="ficha-body"></div>
+    </div>
+    <div class="modal-foot" style="padding-bottom:16px;flex-direction:column;gap:8px">
+      <button class="btn btn-p btn-f" onclick="consumirVinho()" style="background:#2D6A4F">Consumir este vinho</button>
+      <button class="btn btn-d btn-f" onclick="removerVinhoSlot()">Remover da adega</button>
+      <button class="btn btn-s btn-f" onclick="closeModal('modal-ficha')">Fechar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
