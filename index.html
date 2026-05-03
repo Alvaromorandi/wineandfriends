@@ -1113,7 +1113,15 @@ async function extrairDadosRotulo(base64) {
           {inline_data: {mime_type: 'image/jpeg', data: base64}}
         ]}]})
       });
-      var data2 = await resp2.json();
+      var rawText = await resp2.text();
+      var data2 = JSON.parse(rawText);
+      if (data2.error) {
+        console.error('Gemini error:', data2.error);
+        document.getElementById('scan-loading').style.display = 'none';
+        document.getElementById('scan-fields').style.display = 'block';
+        alert('Erro do Gemini: ' + (data2.error.message||JSON.stringify(data2.error)) + '\nPreencha os campos manualmente.');
+        return;
+      }
       var text2 = data2.candidates[0].content.parts[0].text;
       text2 = text2.replace(/```json/g,'').replace(/```/g,'').trim();
       var info2 = JSON.parse(text2);
@@ -1122,7 +1130,7 @@ async function extrairDadosRotulo(base64) {
       document.getElementById('scan-loading').style.display = 'none';
       document.getElementById('scan-fields').style.display = 'block';
       console.error('Erro IA:', e2);
-      alert('Nao foi possivel ler o rotulo automaticamente. Preencha os campos manualmente.');
+      alert('Erro: ' + e2.message + '\nPreencha os campos manualmente.');
     }
   }
 }
