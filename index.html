@@ -653,6 +653,7 @@ textarea.finp{resize:none;min-height:72px;}
 var SUPA_URL = 'https://mkjrsrbapvxkqfpvhmyd.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ranJzcmJhcHZ4a3FmcHZobXlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMTg0NDAsImV4cCI6MjA5Mjc5NDQ0MH0.fuKpi0tFmn7LoO2BBl2qk_rwofgQNJOtTT0EsYJji28';
 var GEMINI_KEY = 'AIzaSyCH1K9cMnmQrguLukhBIunL94LCpKt49RI';
+var ANTHROPIC_KEY = '';
 var authToken = null;
 var currentUser = null;
 var pendingWine = null;
@@ -1066,39 +1067,68 @@ function handlePhoto(input) {
 async function extrairDadosRotulo(base64) {
   try {
     var prompt = 'Analise esta imagem de rotulo de vinho e extraia TODOS os dados visiveis. Responda APENAS em JSON valido com estes campos: {"nome":"","produtor":"","safra":"","regiao":"","pais":"","uvas":"","teor":"","consumo_de":"","consumo_ate":"","pontuacao":"","notas_produtor":""}. Para consumo_de e consumo_ate informe apenas o ano. Para pontuacao use formato "XX pts WS" se conhecer. Se nao souber um campo deixe vazio. Nao inclua texto fora do JSON.';
-    var resp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_KEY, {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
-        contents: [{parts: [
-          {text: prompt},
-          {inline_data: {mime_type: 'image/jpeg', data: base64}}
-        ]}]
+        model: 'claude-opus-4-5',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {type: 'image', source: {type: 'base64', media_type: 'image/jpeg', data: base64}},
+            {type: 'text', text: prompt}
+          ]
+        }]
       })
     });
     var data = await resp.json();
-    var text = data.candidates[0].content.parts[0].text;
-    // Limpar markdown se vier com backticks
+    var text = data.content[0].text;
     text = text.replace(/```json/g,'').replace(/```/g,'').trim();
     var info = JSON.parse(text);
-    // Preencher campos
-    document.getElementById('inp-nome').value = (info.nome||'') + (info.safra?' '+info.safra:'');
-    document.getElementById('inp-produtor').value = info.produtor||'';
-    document.getElementById('inp-safra').value = info.safra||'';
-    document.getElementById('inp-regiao').value = (info.regiao||'') + (info.pais?', '+info.pais:'');
-    document.getElementById('inp-uvas').value = info.uvas||'';
-    document.getElementById('inp-teor').value = info.teor||'';
-    document.getElementById('inp-de').value = info.consumo_de||'';
-    document.getElementById('inp-ate').value = info.consumo_ate||'';
-    document.getElementById('inp-pontuacao').value = info.pontuacao||'';
-    document.getElementById('scan-loading').style.display = 'none';
-    document.getElementById('scan-fields').style.display = 'block';
+    preencherCampos(info);
   } catch(e) {
-    document.getElementById('scan-loading').style.display = 'none';
-    document.getElementById('scan-fields').style.display = 'block';
-    console.error('Erro Gemini:', e);
-    alert('Nao foi possivel ler o rotulo automaticamente. Preencha os campos manualmente.');
+    // Tentar Gemini como fallback
+    try {
+      var resp2 = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + GEMINI_KEY), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({contents: [{parts: [
+          {text: 'Analise esta imagem de rotulo de vinho e extraia TODOS os dados visiveis. Responda APENAS em JSON valido com estes campos: {"nome":"","produtor":"","safra":"","regiao":"","pais":"","uvas":"","teor":"","consumo_de":"","consumo_ate":"","pontuacao":"","notas_produtor":""}. Para consumo_de e consumo_ate informe apenas o ano. Nao inclua texto fora do JSON.'},
+          {inline_data: {mime_type: 'image/jpeg', data: base64}}
+        ]}]})
+      });
+      var data2 = await resp2.json();
+      var text2 = data2.candidates[0].content.parts[0].text;
+      text2 = text2.replace(/```json/g,'').replace(/```/g,'').trim();
+      var info2 = JSON.parse(text2);
+      preencherCampos(info2);
+    } catch(e2) {
+      document.getElementById('scan-loading').style.display = 'none';
+      document.getElementById('scan-fields').style.display = 'block';
+      console.error('Erro IA:', e2);
+      alert('Nao foi possivel ler o rotulo automaticamente. Preencha os campos manualmente.');
+    }
   }
+}
+
+function preencherCampos(info) {
+  document.getElementById('inp-nome').value = (info.nome||'') + (info.safra?' '+info.safra:'');
+  document.getElementById('inp-produtor').value = info.produtor||'';
+  document.getElementById('inp-safra').value = info.safra||'';
+  document.getElementById('inp-regiao').value = (info.regiao||'') + (info.pais?', '+info.pais:'');
+  document.getElementById('inp-uvas').value = info.uvas||'';
+  document.getElementById('inp-teor').value = info.teor||'';
+  document.getElementById('inp-de').value = info.consumo_de||'';
+  document.getElementById('inp-ate').value = info.consumo_ate||'';
+  document.getElementById('inp-pontuacao').value = info.pontuacao||'';
+  document.getElementById('scan-loading').style.display = 'none';
+  document.getElementById('scan-fields').style.display = 'block';
 }
 
 function copyLink() {
